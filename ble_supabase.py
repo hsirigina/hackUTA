@@ -321,13 +321,18 @@ class SupabaseDrivingMonitor:
     async def end_session(self):
         """End the current driving session"""
         try:
+            print("\n🛑 Ending session and setting driver offline...")
+
             # Cancel background tasks
             if self.heartbeat_task:
                 self.heartbeat_task.cancel()
+                print("   ✓ Heartbeat stopped")
             if hasattr(self, 'score_recovery_task') and self.score_recovery_task:
                 self.score_recovery_task.cancel()
+                print("   ✓ Score recovery stopped")
             if self.session_timeout_task:
                 self.session_timeout_task.cancel()
+                print("   ✓ Timeout monitor stopped")
 
             if self.session_id:
                 # Update session status
@@ -335,14 +340,17 @@ class SupabaseDrivingMonitor:
                     'status': 'completed',
                     'ended_at': datetime.utcnow().isoformat()
                 }).eq('id', self.session_id).execute()
+                print(f"   ✓ Session completed: {self.session_id}")
 
                 # Update driver status to inactive and offline
-                self.supabase.table('drivers').update({
+                result = self.supabase.table('drivers').update({
                     'status': 'inactive',
                     'connection_status': 'offline'
                 }).eq('id', self.driver_id).execute()
+                print(f"   ✓ Driver set to OFFLINE: {self.driver_id}")
+                print(f"   ✓ Database update result: {result.data}")
 
-                print(f"\n✅ Session ended: {self.session_id}")
+                print(f"\n✅ Session ended successfully")
                 print(f"🔴 Driver is now OFFLINE")
 
         except Exception as e:
@@ -380,7 +388,10 @@ async def main():
             try:
                 while True:
                     await asyncio.sleep(1)
-            except KeyboardInterrupt:
+            except (KeyboardInterrupt, asyncio.CancelledError):
+                pass  # Handle gracefully
+            finally:
+                # Always end session when exiting loop
                 print("\n📊 Summary:")
                 print(f"Total aggressive events: {monitor.event_count}")
                 if monitor.aggressive_events:
@@ -388,16 +399,15 @@ async def main():
                     for event in monitor.aggressive_events[-5:]:  # Last 5 events
                         print(f"  - {event['time']}: {event['type']}")
 
-                # End session
                 await monitor.end_session()
                 print("Disconnected!")
 
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        # Handle Ctrl+C at outer level
+        print("\n⚠️  Interrupted - ending session...")
+        await monitor.end_session()
     except Exception as e:
         print(f"❌ Connection failed: {e}")
-        print("Make sure:")
-        print("1. Arduino is powered on")
-        print("2. BLE is advertising")
-        print("3. Device name is 'Driving Monitor'")
         await monitor.end_session()
 
 if __name__ == "__main__":
