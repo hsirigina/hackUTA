@@ -10,7 +10,10 @@ import {
   Clock,
   CheckCircle,
   WifiOff,
-  Wifi
+  Wifi,
+  Eye,
+  EyeOff,
+  AlertCircle
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
@@ -89,7 +92,11 @@ const DriverDetail = () => {
           .order('timestamp', { ascending: false })
 
         if (!eventsError) {
+          console.log('📊 Fetched events:', eventsData?.length || 0)
+          console.log('Event types:', eventsData?.map(e => e.event_type))
           setEvents(eventsData || [])
+        } else {
+          console.error('Error fetching events:', eventsError)
         }
       }
 
@@ -101,12 +108,34 @@ const DriverDetail = () => {
   }
 
   const getEventCounts = () => {
-    if (!currentSession) return { swerving: 0, harsh_brake: 0, aggressive: 0 }
+    if (!currentSession) return {
+      swerving: 0,
+      harsh_brake: 0,
+      aggressive: 0,
+      distracted: 0,
+      drowsy: 0,
+      eyes_closed: 0
+    }
+
+    // Count attention events from events array
+    const distractedCount = events.filter(e => e.event_type === 'DISTRACTED').length
+    const drowsyCount = events.filter(e => e.event_type === 'DROWSY').length
+    const eyesClosedCount = events.filter(e => e.event_type === 'EYES_CLOSED').length
+
+    console.log('🔢 Event counts:', {
+      totalEvents: events.length,
+      distracted: distractedCount,
+      drowsy: drowsyCount,
+      eyes_closed: eyesClosedCount
+    })
 
     return {
       swerving: currentSession.total_swerving || 0,
       harsh_brake: currentSession.total_harsh_brake || 0,
-      aggressive: currentSession.total_aggressive || 0
+      aggressive: currentSession.total_aggressive || 0,
+      distracted: distractedCount,
+      drowsy: drowsyCount,
+      eyes_closed: eyesClosedCount
     }
   }
 
@@ -239,7 +268,8 @@ const DriverDetail = () => {
               </div>
             </motion.div>
 
-            {/* Event Statistics Grid */}
+            {/* Driving Event Statistics Grid */}
+            <h3 className="text-lg font-bold text-gray-900 mb-4">🚗 Driving Events</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               {/* Sharp Turns / Swerving */}
               <motion.div
@@ -290,6 +320,61 @@ const DriverDetail = () => {
                 </div>
                 <h4 className="font-semibold text-gray-900">Aggressive Driving</h4>
                 <p className="text-sm text-gray-500">Aggressive acceleration</p>
+              </motion.div>
+            </div>
+
+            {/* Attention Event Statistics Grid */}
+            <h3 className="text-lg font-bold text-gray-900 mb-4 mt-8">👁️ Attention Events</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {/* Distracted */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <Eye className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <span className="text-4xl font-bold text-blue-600">{eventCounts.distracted}</span>
+                </div>
+                <h4 className="font-semibold text-gray-900">Distracted</h4>
+                <p className="text-sm text-gray-500">Looking away from road</p>
+              </motion.div>
+
+              {/* Drowsy */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                    <AlertCircle className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <span className="text-4xl font-bold text-purple-600">{eventCounts.drowsy}</span>
+                </div>
+                <h4 className="font-semibold text-gray-900">Drowsy</h4>
+                <p className="text-sm text-gray-500">Eyes closing - drowsy</p>
+              </motion.div>
+
+              {/* Eyes Closed */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                    <EyeOff className="w-6 h-6 text-red-600" />
+                  </div>
+                  <span className="text-4xl font-bold text-red-600">{eventCounts.eyes_closed}</span>
+                </div>
+                <h4 className="font-semibold text-gray-900">Eyes Closed</h4>
+                <p className="text-sm text-gray-500">No eyes detected</p>
               </motion.div>
             </div>
 
