@@ -51,9 +51,10 @@ Unauthorized client
 **Possible Causes:**
 
 **1. Action Not Deployed**
-- Go to Actions → Flows → Login
+- Go to Actions → **Flows** (or **Triggers** in newer dashboards) → Login
 - Make sure "Add User Metadata" is in the flow
 - Check it's deployed (green checkmark)
+- **Note:** Auth0 updated in 2025 - you'll see "Triggers" instead of "Flows"
 
 **2. Action Not Applied**
 - After adding action to flow, click "Apply" (top right)

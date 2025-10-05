@@ -25,8 +25,9 @@ This will guide you through:
 - Configuring roles
 
 Need more details? See:
-- 📖 [AUTH0_SETUP_GUIDE.md](AUTH0_SETUP_GUIDE.md) - Detailed instructions with screenshots guide
+- 📖 [AUTH0_SETUP_GUIDE.md](AUTH0_SETUP_GUIDE.md) - Detailed instructions (updated for 2025!)
 - 🔄 [AUTH0_FLOW_DIAGRAM.md](AUTH0_FLOW_DIAGRAM.md) - Visual diagrams and technical flow
+- 🆕 [AUTH0_DASHBOARD_UPDATE_2025.md](AUTH0_DASHBOARD_UPDATE_2025.md) - **See "Triggers" instead of "Flows"? Read this!**
 
 ### Step 2: Configure Your App (5 min)
 

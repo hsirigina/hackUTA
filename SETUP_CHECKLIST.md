@@ -32,12 +32,13 @@ Use this checklist to track your setup progress. Follow along with [AUTH0_SETUP_
 - [ ] Create role: `driver`
 
 ### Phase 5: Set Up Actions
-- [ ] Go to Actions → Flows
-- [ ] Click "Login" flow
+**Note:** You'll see either "Flows" OR "Triggers" - both work the same!
+- [ ] Go to Actions → **Flows** (or **Triggers** if you don't see Flows)
+- [ ] Click "Login" flow (or "Login / Post Login" trigger)
 - [ ] Create custom action: "Add User Metadata"
 - [ ] Copy/paste the JavaScript code from guide
 - [ ] Click "Deploy"
-- [ ] Drag action into Login flow
+- [ ] Drag action into Login flow (look for "Custom" tab on right)
 - [ ] Click "Apply"
 
 ### Phase 6: Create Test Users

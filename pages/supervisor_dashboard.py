@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from auth.session import session
 from database.models import db, DrivingSession, DrivingEvent
 from utils.decorators import require_supervisor
+from components.ui_components import metric_card, stat_card_row, info_card, chart_card, alert_box
 
 
 @require_supervisor
@@ -17,60 +18,80 @@ def show():
     drivers = db.get_supervised_drivers(user_id)
 
     if not drivers:
-        st.info("👥 You don't have any drivers assigned yet.")
-        st.markdown("""
-        ### Getting Started
-
-        To add drivers to your supervision:
-        1. Drivers need to be registered in the system
-        2. Use the 'Manage Drivers' page to link drivers to your account
-        3. Or contact your administrator to assign drivers to you
-        """)
+        info_card(
+            title="No Drivers Assigned",
+            content="""
+            <p>You don't have any drivers assigned yet.</p>
+            <p><strong>To add drivers to your supervision:</strong></p>
+            <ol>
+                <li>Drivers need to be registered in the system</li>
+                <li>Use the 'Manage Drivers' page to link drivers to your account</li>
+                <li>Or contact your administrator to assign drivers to you</li>
+            </ol>
+            """,
+            icon="👥",
+            bg_color="#fff3e0"
+        )
         return
 
-    # Summary metrics
-    st.subheader("📈 Overview")
+    # Calculate metrics
+    db_session = db.get_session()
 
-    col1, col2, col3, col4 = st.columns(4)
+    # Count active sessions
+    active_sessions = db_session.query(DrivingSession).filter(
+        DrivingSession.driver_id.in_([d.id for d in drivers]),
+        DrivingSession.is_active == True
+    ).count()
 
-    with col1:
-        st.metric("Total Drivers", len(drivers))
+    # Count events today
+    today = datetime.utcnow().date()
+    events_today = db_session.query(DrivingEvent).join(DrivingSession).filter(
+        DrivingSession.driver_id.in_([d.id for d in drivers]),
+        DrivingEvent.timestamp >= today
+    ).count()
 
-    with col2:
-        # Count active sessions
-        db_session = db.get_session()
-        active_sessions = db_session.query(DrivingSession).filter(
-            DrivingSession.driver_id.in_([d.id for d in drivers]),
-            DrivingSession.is_active == True
-        ).count()
-        db_session.close()
-        st.metric("Active Drivers", active_sessions)
+    # Total distance this week
+    week_ago = datetime.utcnow() - timedelta(days=7)
+    total_distance = db_session.query(DrivingSession).filter(
+        DrivingSession.driver_id.in_([d.id for d in drivers]),
+        DrivingSession.start_time >= week_ago
+    ).with_entities(db_session.query(DrivingSession.distance).label('distance')).all()
 
-    with col3:
-        # Count events today
-        db_session = db.get_session()
-        today = datetime.utcnow().date()
-        events_today = db_session.query(DrivingEvent).join(DrivingSession).filter(
-            DrivingSession.driver_id.in_([d.id for d in drivers]),
-            DrivingEvent.timestamp >= today
-        ).count()
-        db_session.close()
-        st.metric("Events Today", events_today)
+    distance_sum = sum([d[0] for d in total_distance if d[0]]) if total_distance else 0
 
-    with col4:
-        # Total distance this week
-        db_session = db.get_session()
-        week_ago = datetime.utcnow() - timedelta(days=7)
-        total_distance = db_session.query(DrivingSession).filter(
-            DrivingSession.driver_id.in_([d.id for d in drivers]),
-            DrivingSession.start_time >= week_ago
-        ).with_entities(db_session.query(DrivingSession.distance).label('distance')).all()
-        db_session.close()
+    db_session.close()
 
-        distance_sum = sum([d[0] for d in total_distance if d[0]]) if total_distance else 0
-        st.metric("Distance (7d)", f"{distance_sum:.1f} km")
+    # Display enhanced metric cards
+    st.markdown("### 📈 Overview")
+    stat_card_row([
+        {
+            'title': 'Total Drivers',
+            'value': str(len(drivers)),
+            'icon': '👥',
+            'color': '#1e88e5'
+        },
+        {
+            'title': 'Active Now',
+            'value': str(active_sessions),
+            'icon': '🚗',
+            'color': '#4caf50'
+        },
+        {
+            'title': 'Events Today',
+            'value': str(events_today),
+            'delta': '+3' if events_today > 0 else None,
+            'icon': '🚨',
+            'color': '#ff9800'
+        },
+        {
+            'title': 'Distance (7d)',
+            'value': f'{distance_sum:.0f} km',
+            'icon': '📍',
+            'color': '#9c27b0'
+        }
+    ])
 
-    st.divider()
+    st.markdown("<br>", unsafe_allow_html=True)
 
     # Driver list
     st.subheader("👥 Monitored Drivers")

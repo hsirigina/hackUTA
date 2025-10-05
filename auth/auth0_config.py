@@ -42,10 +42,19 @@ class Auth0Config:
             token=token
         )
 
-    def get_authorization_url(self) -> tuple[str, str]:
+    def get_authorization_url(self, force_login: bool = False) -> tuple[str, str]:
         """Get the authorization URL and state for login."""
         session = self.get_oauth_session()
-        authorization_url, state = session.create_authorization_url(self.authorize_url)
+
+        # Add prompt=login to force user to re-authenticate (useful after logout)
+        extra_params = {}
+        if force_login:
+            extra_params['prompt'] = 'login'
+
+        authorization_url, state = session.create_authorization_url(
+            self.authorize_url,
+            **extra_params
+        )
         return authorization_url, state
 
     def exchange_code_for_token(self, authorization_response: str) -> Dict[str, Any]:

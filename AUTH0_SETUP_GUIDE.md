@@ -94,9 +94,19 @@ We need to add custom metadata to users to track supervisor/driver relationships
 
 ### 5.1: Create an Action
 
+**IMPORTANT:** Auth0 has updated their dashboard. You'll see either **"Flows"** or **"Triggers"** - both work the same way!
+
+#### Option A: If you see "Flows" (older dashboard)
 1. In the left sidebar, click **Actions** → **Flows**
 2. Click on **"Login"** flow
 3. Click **"+ Add Action"** → **"Build Custom"**
+
+#### Option B: If you see "Triggers" (newer dashboard - 2025)
+1. In the left sidebar, click **Actions** → **Triggers**
+2. Find **"Login / Post Login"** trigger
+3. Click the **"+"** button or **"Build Custom"** on the right side
+
+#### Both options: Fill in the Action details
 4. Fill in:
    - **Name**: `Add User Metadata`
    - **Trigger**: `Login / Post Login`
@@ -126,12 +136,23 @@ exports.onExecutePostLogin = async (event, api) => {
 };
 ```
 
-### 5.3: Deploy the Action
+### 5.3: Deploy and Add to Flow
 
 1. Click **"Deploy"** button (top right)
+
+#### Option A: If using "Flows" (older dashboard)
 2. Go back to **Actions** → **Flows** → **Login**
 3. Drag the **"Add User Metadata"** action from the right panel into the flow (between "Start" and "Complete")
 4. Click **"Apply"** (top right)
+
+#### Option B: If using "Triggers" (newer dashboard - 2025)
+2. Go back to **Actions** → **Triggers**
+3. Find **"Login / Post Login"** trigger
+4. Click on it to open the flow builder
+5. Look for **"Custom"** tab on the right side
+6. Find your **"Add User Metadata"** action
+7. Drag it into the flow (between "Start" and "Complete")
+8. Click **"Apply"** (top right)
 
 ## Step 6: Create Test Users
 

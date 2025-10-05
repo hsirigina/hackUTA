@@ -7,6 +7,7 @@ A comprehensive driving monitoring system built with Streamlit and Auth0, featur
 - **🚀 [SETUP_CHECKLIST.md](SETUP_CHECKLIST.md)** - Start here! Step-by-step setup checklist
 - **📖 [AUTH0_SETUP_GUIDE.md](AUTH0_SETUP_GUIDE.md)** - Detailed Auth0 configuration guide
 - **🔄 [AUTH0_FLOW_DIAGRAM.md](AUTH0_FLOW_DIAGRAM.md)** - Visual diagrams & technical flow
+- **🆕 [AUTH0_DASHBOARD_UPDATE_2025.md](AUTH0_DASHBOARD_UPDATE_2025.md)** - Dashboard updated? See "Triggers" instead of "Flows"?
 - **⚡ Quick Start**: Run `./quickstart.sh` after Auth0 setup
 
 ## 📋 Features
