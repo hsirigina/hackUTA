@@ -9,7 +9,7 @@ const AuthPage = () => {
   const navigate = useNavigate()
   const [isLogin, setIsLogin] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
-  const [typewriterText, setTypewriterText] = useState('PARKER')
+  const [typewriterText, setTypewriterText] = useState('DASH')
   const [showCursor, setShowCursor] = useState(false)
   const [descriptionText, setDescriptionText] = useState('')
   const [showDescriptionCursor, setShowDescriptionCursor] = useState(true)
@@ -208,7 +208,7 @@ const AuthPage = () => {
       </div>
 
       {/* Right Panel - Auth Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative z-10" style={{ backgroundColor: '#f5f5f5' }}>
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative z-10" style={{ backgroundColor: '#12161e' }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -217,23 +217,23 @@ const AuthPage = () => {
         >
           {/* Logo/Brand */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-semibold" style={{ 
-              color: '#38b6ff', 
+            <h1 className="text-3xl font-semibold" style={{
+              color: '#38b6ff',
               fontFamily: 'Orbitron, monospace',
               fontWeight: '900',
               letterSpacing: '2px',
               textTransform: 'uppercase',
               textShadow: '0 0 2px #ffffff, 0 0 4px #38b6ff, 0 0 8px #38b6ff'
             }}>
-              Welcome to <span style={{ 
+              Welcome to <span style={{
                 fontFamily: 'Orbitron, monospace',
                 letterSpacing: '2px',
                 textTransform: 'uppercase',
                 fontWeight: '900'
-              }}>PARKER</span>
+              }}>DASH</span>
             </h1>
-            <p className="mt-2" style={{ 
-              color: '#12161e', 
+            <p className="mt-2" style={{
+              color: '#a0a0a0',
               fontFamily: 'Fira Code, monospace',
               textTransform: 'lowercase'
             }}>
@@ -301,8 +301,8 @@ const AuthPage = () => {
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <label className="block text-sm font-medium mb-2" style={{ 
-                    color: '#12161e', 
+                  <label className="block text-sm font-medium mb-2" style={{
+                    color: '#ffffff',
                     fontFamily: 'Fira Code, monospace',
                     textTransform: 'lowercase'
                   }}>
@@ -332,8 +332,8 @@ const AuthPage = () => {
             </AnimatePresence>
 
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ 
-                color: '#12161e', 
+              <label className="block text-sm font-medium mb-2" style={{
+                color: '#ffffff',
                 fontFamily: 'Fira Code, monospace',
                 textTransform: 'lowercase'
               }}>
@@ -361,8 +361,8 @@ const AuthPage = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2" style={{ 
-                color: '#12161e', 
+              <label className="block text-sm font-medium mb-2" style={{
+                color: '#ffffff',
                 fontFamily: 'Fira Code, monospace',
                 textTransform: 'lowercase'
               }}>
@@ -401,13 +401,13 @@ const AuthPage = () => {
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center">
                   <input type="checkbox" className="w-4 h-4 rounded border-2 focus:ring-2 bg-white" style={{ borderColor: '#38b6ff', accentColor: '#38b6ff' }} />
-                  <span className="ml-2" style={{ 
-                    color: '#12161e', 
+                  <span className="ml-2" style={{
+                    color: '#ffffff',
                     fontFamily: 'Fira Code, monospace',
                     textTransform: 'lowercase'
                   }}>remember me</span>
                 </label>
-                <a href="#" className="font-medium hover:opacity-80" style={{ 
+                <a href="#" className="font-medium hover:opacity-80" style={{
                   color: '#38b6ff',
                   fontFamily: 'Fira Code, monospace',
                   textTransform: 'lowercase'
@@ -469,8 +469,8 @@ const AuthPage = () => {
           {/* Divider */}
           <div className="my-8 flex items-center">
             <div className="flex-1 border-t" style={{ borderColor: '#38b6ff' }}></div>
-            <span className="px-4 text-sm" style={{ 
-              color: '#12161e', 
+            <span className="px-4 text-sm" style={{
+              color: '#a0a0a0',
               fontFamily: 'Fira Code, monospace',
               textTransform: 'lowercase'
             }}>or continue with</span>
@@ -485,9 +485,9 @@ const AuthPage = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="py-3 px-4 rounded-xl transition-colors font-medium"
-                style={{ 
-                  backgroundColor: '#ffffff', 
-                  color: '#12161e', 
+                style={{
+                  backgroundColor: '#1a1f2e',
+                  color: '#ffffff',
                   fontFamily: 'Fira Code, monospace',
                   textTransform: 'lowercase',
                   border: '2px solid #38b6ff',
