@@ -118,45 +118,55 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen" style={{ backgroundColor: '#12161e' }}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 backdrop-blur-lg bg-white/80">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      <header className="sticky top-0 z-50 backdrop-blur-lg" style={{ backgroundColor: '#12161e' }}>
+        <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#38b6ff' }}>
                 <Car className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Fleet Dashboard
+                <h1 className="text-2xl font-bold" style={{ 
+                  color: '#ffffff', 
+                  fontFamily: 'Orbitron, monospace',
+                  textShadow: '0 0 2px #ffffff, 0 0 4px #38b6ff, 0 0 8px #38b6ff',
+                  letterSpacing: '2px',
+                  textTransform: 'uppercase',
+                  fontWeight: '900'
+                }}>
+                  FLEET DASHBOARD
                 </h1>
-                <p className="text-sm text-gray-500">Monitor your drivers in real-time</p>
+                <p className="text-sm" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Monitor your drivers in real-time</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative"
+                className="p-2 rounded-lg transition-colors relative"
+                style={{ backgroundColor: '#1a1f2e' }}
               >
-                <Bell className="w-5 h-5 text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                <Bell className="w-5 h-5 text-white" />
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ backgroundColor: '#38b6ff' }}></span>
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 rounded-lg transition-colors"
+                style={{ backgroundColor: '#1a1f2e' }}
               >
-                <Settings className="w-5 h-5 text-gray-600" />
+                <Settings className="w-5 h-5 text-white" />
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 rounded-lg transition-colors"
+                style={{ backgroundColor: '#1a1f2e' }}
               >
-                <LogOut className="w-5 h-5 text-gray-600" />
+                <LogOut className="w-5 h-5 text-white" />
               </motion.button>
             </div>
           </div>
@@ -164,21 +174,29 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-6 py-6" style={{ overflow: 'visible' }}>
         {/* Supervisor Info Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white rounded-2xl shadow-lg p-8 mb-8 border border-gray-100"
+        <div
+          className="rounded-xl p-6 mb-8"
+          style={{ 
+            backgroundColor: '#1a1f2e',
+            border: '2px solid #38b6ff',
+            boxShadow: '0 0 20px rgba(56, 182, 255, 0.3)'
+          }}
         >
           <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+            <div className="w-16 h-16 rounded-lg flex items-center justify-center text-white text-xl font-bold" style={{ backgroundColor: '#38b6ff' }}>
               {supervisor.avatar}
             </div>
             <div className="flex-1">
-              <h2 className="text-3xl font-bold text-gray-900 mb-1">{supervisor.name}</h2>
-              <div className="flex items-center gap-4 text-gray-600">
+              <h2 className="text-2xl font-bold mb-1" style={{ 
+                color: '#ffffff',
+                fontFamily: 'Fira Code, monospace',
+                letterSpacing: '1px',
+                textTransform: 'lowercase',
+                fontWeight: '700'
+              }}>{supervisor.name}</h2>
+              <div className="flex items-center gap-4" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4" />
                   <span>{supervisor.email}</span>
@@ -190,102 +208,144 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="flex gap-4">
-              <div className="text-center px-6 py-3 bg-blue-50 rounded-xl">
-                <div className="text-2xl font-bold text-blue-600">{drivers.length}</div>
-                <div className="text-sm text-gray-600">Total Drivers</div>
+              <div className="text-center px-4 py-2 rounded-lg" style={{ 
+                backgroundColor: '#12161e',
+                border: '1px solid #38b6ff',
+                boxShadow: '0 0 10px rgba(56, 182, 255, 0.2)'
+              }}>
+                <div className="text-xl font-bold" style={{ color: '#38b6ff' }}>{drivers.length}</div>
+                <div className="text-xs" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Total Drivers</div>
               </div>
-              <div className="text-center px-6 py-3 bg-green-50 rounded-xl">
-                <div className="text-2xl font-bold text-green-600">
+              <div className="text-center px-4 py-2 rounded-lg" style={{ 
+                backgroundColor: '#12161e',
+                border: '1px solid #38b6ff',
+                boxShadow: '0 0 10px rgba(56, 182, 255, 0.2)'
+              }}>
+                <div className="text-xl font-bold" style={{ color: '#38b6ff' }}>
                   {drivers.filter(d => d.status === 'active').length}
                 </div>
-                <div className="text-sm text-gray-600">Active Now</div>
+                <div className="text-xs" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Active Now</div>
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Drivers Section */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-2xl font-bold text-gray-900">Your Drivers</h3>
-            <span className="text-sm text-gray-500">Scroll to see more →</span>
+            <h3 className="text-xl font-bold" style={{ 
+              color: '#ffffff',
+              fontFamily: 'Orbitron, monospace',
+              textShadow: '0 0 1px #ffffff, 0 0 3px #38b6ff, 0 0 6px #38b6ff',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              fontWeight: '700'
+            }}>YOUR DRIVERS</h3>
+            <span className="text-sm" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Scroll to see more →</span>
           </div>
         </div>
 
         {/* Horizontally Scrollable Driver Cards */}
-        <div className="relative">
-          <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
+        <div className="relative" style={{ zIndex: 10, overflow: 'visible' }}>
+          <div className="flex gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory" style={{ scrollbarWidth: 'none', overflowY: 'visible', paddingBottom: '2rem' }}>
             {drivers.map((driver, index) => (
               <motion.div
                 key={driver.id}
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.5 }}
-                whileHover={{ scale: 1.02, y: -5 }}
-                className="flex-shrink-0 w-80 snap-start"
+                whileHover={{ 
+                  scale: 1.05, 
+                  y: -10, 
+                  rotateY: 5,
+                  boxShadow: '0 0 40px rgba(56, 182, 255, 0.6)',
+                  transition: { duration: 0.2 }
+                }}
+                className="flex-shrink-0 w-80 snap-start relative"
+                style={{ zIndex: 1 }}
               >
-                <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 h-full">
+                <div className="rounded-xl p-4 transition-all duration-300 h-full" style={{ 
+                  backgroundColor: '#1a1f2e',
+                  border: '2px solid #38b6ff',
+                  boxShadow: '0 0 20px rgba(56, 182, 255, 0.3)'
+                }}>
                   {/* Driver Header */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-purple-500 rounded-xl flex items-center justify-center text-white text-lg font-bold">
+                      <div className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: '#38b6ff' }}>
                         {driver.avatar}
                       </div>
                       <div>
-                        <h4 className="font-semibold text-gray-900 text-lg">{driver.name}</h4>
-                        <p className="text-sm text-gray-500 flex items-center gap-1">
+                        <h4 className="font-semibold" style={{ 
+                          color: '#ffffff',
+                          fontFamily: 'Fira Code, monospace',
+                          letterSpacing: '0.5px',
+                          textTransform: 'lowercase',
+                          fontWeight: '700'
+                        }}>{driver.name}</h4>
+                        <p className="text-xs flex items-center gap-1" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>
                           <Mail className="w-3 h-3" />
                           {driver.email}
                         </p>
                       </div>
                     </div>
-                    <div className={`p-2 rounded-lg ${getStatusColor(driver.status)} bg-opacity-10`}>
-                      <div className={`${getStatusColor(driver.status)} text-white`}>
+                    <div className="p-1 rounded" style={{ backgroundColor: '#38b6ff' }}>
+                      <div className="text-white">
                         {getStatusIcon(driver.status)}
                       </div>
                     </div>
                   </div>
 
                   {/* Arduino ID */}
-                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                  <div className="rounded-lg p-2 mb-3" style={{ 
+                    backgroundColor: '#12161e',
+                    border: '1px solid #38b6ff',
+                    boxShadow: '0 0 10px rgba(56, 182, 255, 0.2)'
+                  }}>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Arduino ID</span>
-                      <span className="font-mono font-semibold text-gray-900">{driver.arduinoId}</span>
+                      <span className="text-xs" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Arduino ID</span>
+                      <span className="font-mono text-sm font-semibold" style={{ color: '#38b6ff' }}>{driver.arduinoId}</span>
                     </div>
                   </div>
 
                   {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="bg-blue-50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Car className="w-4 h-4 text-blue-600" />
-                        <span className="text-xs text-gray-600">Trips Today</span>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="rounded-lg p-2" style={{ 
+                      backgroundColor: '#12161e',
+                      border: '1px solid #38b6ff',
+                      boxShadow: '0 0 10px rgba(56, 182, 255, 0.2)'
+                    }}>
+                      <div className="flex items-center gap-1 mb-1">
+                        <Car className="w-3 h-3" style={{ color: '#38b6ff' }} />
+                        <span className="text-xs" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Trips</span>
                       </div>
-                      <div className="text-xl font-bold text-blue-600">{driver.tripsToday}</div>
+                      <div className="text-lg font-bold" style={{ color: '#38b6ff' }}>{driver.tripsToday}</div>
                     </div>
-                    <div className="bg-purple-50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Activity className="w-4 h-4 text-purple-600" />
-                        <span className="text-xs text-gray-600">Safety Score</span>
+                    <div className="rounded-lg p-2" style={{ 
+                      backgroundColor: '#12161e',
+                      border: '1px solid #38b6ff',
+                      boxShadow: '0 0 10px rgba(56, 182, 255, 0.2)'
+                    }}>
+                      <div className="flex items-center gap-1 mb-1">
+                        <Activity className="w-3 h-3" style={{ color: '#38b6ff' }} />
+                        <span className="text-xs" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Safety</span>
                       </div>
-                      <div className={`text-xl font-bold ${getSafetyScoreColor(driver.safetyScore)}`}>
+                      <div className="text-lg font-bold" style={{ color: '#38b6ff' }}>
                         {driver.safetyScore}%
                       </div>
                     </div>
                   </div>
 
                   {/* Last Active */}
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Clock className="w-4 h-4" />
-                      <span>Last active: {driver.lastActive}</span>
+                  <div className="flex items-center justify-between pt-2" style={{ borderTop: '1px solid #38b6ff' }}>
+                    <div className="flex items-center gap-1 text-xs" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>
+                      <Clock className="w-3 h-3" />
+                      <span>{driver.lastActive}</span>
                     </div>
                     <motion.button
-                      whileHover={{ x: 5 }}
-                      className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center gap-1"
+                      whileHover={{ x: 2 }}
+                      className="text-xs flex items-center gap-1"
+                      style={{ color: '#38b6ff' }}
                     >
-                      View Details
-                      <ChevronRight className="w-4 h-4" />
+                      View
+                      <ChevronRight className="w-3 h-3" />
                     </motion.button>
                   </div>
                 </div>
@@ -294,61 +354,77 @@ const Dashboard = () => {
           </div>
 
           {/* Scroll Indicator - Left Gradient */}
-          <div className="absolute left-0 top-0 bottom-4 w-20 bg-gradient-to-r from-gray-50 to-transparent pointer-events-none"></div>
+          <div className="absolute left-0 top-0 bottom-4 w-20 pointer-events-none" style={{ background: 'linear-gradient(to right, #12161e, transparent)' }}></div>
 
           {/* Scroll Indicator - Right Gradient */}
-          <div className="absolute right-0 top-0 bottom-4 w-20 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none"></div>
+          <div className="absolute right-0 top-0 bottom-4 w-20 pointer-events-none" style={{ background: 'linear-gradient(to left, #12161e, transparent)' }}></div>
         </div>
 
         {/* Quick Stats Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-          className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6"
-        >
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div 
+            className="rounded-xl p-4" 
+            style={{ 
+              backgroundColor: '#12161e',
+              border: '2px solid #38b6ff',
+              boxShadow: '0 0 20px rgba(56, 182, 255, 0.3)'
+            }}
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Total Trips Today</p>
-                <p className="text-3xl font-bold text-gray-900">
+                <p className="text-xs mb-1" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Total Trips Today</p>
+                <p className="text-2xl font-bold" style={{ color: '#38b6ff' }}>
                   {drivers.reduce((acc, d) => acc + d.tripsToday, 0)}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <Car className="w-6 h-6 text-blue-600" />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#38b6ff' }}>
+                <Car className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+          <div 
+            className="rounded-xl p-4" 
+            style={{ 
+              backgroundColor: '#12161e',
+              border: '2px solid #38b6ff',
+              boxShadow: '0 0 20px rgba(56, 182, 255, 0.3)'
+            }}
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Average Safety Score</p>
-                <p className="text-3xl font-bold text-gray-900">
+                <p className="text-xs mb-1" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Average Safety Score</p>
+                <p className="text-2xl font-bold" style={{ color: '#38b6ff' }}>
                   {Math.round(drivers.reduce((acc, d) => acc + d.safetyScore, 0) / drivers.length)}%
                 </p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <Activity className="w-6 h-6 text-green-600" />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#38b6ff' }}>
+                <Activity className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+          <div 
+            className="rounded-xl p-4" 
+            style={{ 
+              backgroundColor: '#12161e',
+              border: '2px solid #38b6ff',
+              boxShadow: '0 0 20px rgba(56, 182, 255, 0.3)'
+            }}
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Active Alerts</p>
-                <p className="text-3xl font-bold text-gray-900">
+                <p className="text-xs mb-1" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Active Alerts</p>
+                <p className="text-2xl font-bold" style={{ color: '#38b6ff' }}>
                   {drivers.filter(d => d.status === 'warning').length}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-yellow-600" />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#38b6ff' }}>
+                <AlertCircle className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       </main>
     </div>
   )
