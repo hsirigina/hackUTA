@@ -71,7 +71,7 @@ const DriverDetail = () => {
 
       setDriver(driverData)
 
-      // Fetch current active session
+      // Fetch current active session (most recent one)
       const { data: sessionData, error: sessionError } = await supabase
         .from('driving_sessions')
         .select('*')
@@ -79,7 +79,7 @@ const DriverDetail = () => {
         .eq('status', 'active')
         .order('started_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()  // Changed from .single() to handle multiple active sessions
 
       setCurrentSession(sessionData)
 
@@ -117,25 +117,29 @@ const DriverDetail = () => {
       eyes_closed: 0
     }
 
-    // Count attention events from events array
+    // Count ALL events from events array (not from session counters)
+    const swervingCount = events.filter(e => e.event_type === 'SWERVING').length
+    const harshBrakeCount = events.filter(e => e.event_type === 'HARSH_BRAKE').length
+    const aggressiveCount = events.filter(e => e.event_type === 'AGGRESSIVE').length
     const distractedCount = events.filter(e => e.event_type === 'DISTRACTED').length
-    const drowsyCount = events.filter(e => e.event_type === 'DROWSY').length
-    const eyesClosedCount = events.filter(e => e.event_type === 'EYES_CLOSED').length
+    // Combine DROWSY and EYES_CLOSED into "Drowsy"
+    const drowsyCount = events.filter(e => e.event_type === 'DROWSY' || e.event_type === 'EYES_CLOSED').length
 
-    console.log('🔢 Event counts:', {
+    console.log('🔢 Event counts from events array:', {
       totalEvents: events.length,
+      swerving: swervingCount,
+      harsh_brake: harshBrakeCount,
+      aggressive: aggressiveCount,
       distracted: distractedCount,
-      drowsy: drowsyCount,
-      eyes_closed: eyesClosedCount
+      drowsy: drowsyCount
     })
 
     return {
-      swerving: currentSession.total_swerving || 0,
-      harsh_brake: currentSession.total_harsh_brake || 0,
-      aggressive: currentSession.total_aggressive || 0,
+      swerving: swervingCount,
+      harsh_brake: harshBrakeCount,
+      aggressive: aggressiveCount,
       distracted: distractedCount,
-      drowsy: drowsyCount,
-      eyes_closed: eyesClosedCount
+      drowsy: drowsyCount
     }
   }
 
@@ -343,7 +347,7 @@ const DriverDetail = () => {
                 <p className="text-sm text-gray-500">Looking away from road</p>
               </motion.div>
 
-              {/* Drowsy */}
+              {/* Drowsy (combines DROWSY and EYES_CLOSED) */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -351,30 +355,13 @@ const DriverDetail = () => {
                 className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <AlertCircle className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <span className="text-4xl font-bold text-purple-600">{eventCounts.drowsy}</span>
-                </div>
-                <h4 className="font-semibold text-gray-900">Drowsy</h4>
-                <p className="text-sm text-gray-500">Eyes closing - drowsy</p>
-              </motion.div>
-
-              {/* Eyes Closed */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
-                className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100"
-              >
-                <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
                     <EyeOff className="w-6 h-6 text-red-600" />
                   </div>
-                  <span className="text-4xl font-bold text-red-600">{eventCounts.eyes_closed}</span>
+                  <span className="text-4xl font-bold text-red-600">{eventCounts.drowsy}</span>
                 </div>
-                <h4 className="font-semibold text-gray-900">Eyes Closed</h4>
-                <p className="text-sm text-gray-500">No eyes detected</p>
+                <h4 className="font-semibold text-gray-900">Drowsy</h4>
+                <p className="text-sm text-gray-500">Eyes closing or closed</p>
               </motion.div>
             </div>
 
@@ -418,38 +405,58 @@ const DriverDetail = () => {
               >
                 <h3 className="text-xl font-bold text-gray-900 mb-6">Recent Events</h3>
                 <div className="space-y-4">
-                  {events.slice(0, 10).map((event, index) => (
-                    <div
-                      key={event.id}
-                      className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                    >
-                      <div className={`w-2 h-2 rounded-full ${
-                        event.severity === 'high' ? 'bg-red-500' :
-                        event.severity === 'medium' ? 'bg-yellow-500' :
-                        'bg-blue-500'
-                      }`}></div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-900">{event.event_type.replace('_', ' ')}</span>
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            event.severity === 'high' ? 'bg-red-100 text-red-700' :
-                            event.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-blue-100 text-blue-700'
-                          }`}>
-                            {event.severity}
-                          </span>
+                  {events.slice(0, 10).map((event, index) => {
+                    // Check if this is a driving event (has accelerometer data) or attention event
+                    const isDrivingEvent = ['SWERVING', 'HARSH_BRAKE', 'AGGRESSIVE'].includes(event.event_type)
+                    const isAttentionEvent = ['DISTRACTED', 'DROWSY', 'EYES_CLOSED'].includes(event.event_type)
+
+                    return (
+                      <div
+                        key={event.id}
+                        className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                      >
+                        <div className={`w-2 h-2 rounded-full ${
+                          event.severity === 'high' ? 'bg-red-500' :
+                          event.severity === 'medium' ? 'bg-yellow-500' :
+                          'bg-blue-500'
+                        }`}></div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-900">
+                              {event.event_type.replace(/_/g, ' ')}
+                            </span>
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              event.severity === 'high' ? 'bg-red-100 text-red-700' :
+                              event.severity === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-blue-100 text-blue-700'
+                            }`}>
+                              {event.severity}
+                            </span>
+                            {isAttentionEvent && (
+                              <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700">
+                                👁️ Attention
+                              </span>
+                            )}
+                            {isDrivingEvent && (
+                              <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                                🚗 Driving
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            {new Date(event.timestamp).toLocaleString()}
+                          </p>
                         </div>
-                        <p className="text-sm text-gray-500">
-                          {new Date(event.timestamp).toLocaleString()}
-                        </p>
+                        {isDrivingEvent && (event.x !== 0 || event.y !== 0 || event.z !== 0) && (
+                          <div className="text-right text-sm text-gray-600">
+                            <p>X: {event.x.toFixed(2)}</p>
+                            <p>Y: {event.y.toFixed(2)}</p>
+                            <p>Z: {event.z.toFixed(2)}</p>
+                          </div>
+                        )}
                       </div>
-                      <div className="text-right text-sm text-gray-600">
-                        <p>X: {event.x.toFixed(2)}</p>
-                        <p>Y: {event.y.toFixed(2)}</p>
-                        <p>Z: {event.z.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </motion.div>
             )}

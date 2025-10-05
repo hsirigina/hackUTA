@@ -1,11 +1,22 @@
 import smtplib
 from email.mime.text import MIMEText
 from typing import Callable, Any, List, Tuple, Dict
+import os
+from dotenv import load_dotenv
 
-def send_email_notification(subject: str, message: str) -> None:
-    gmail_user = "change this"
-    gmail_app_password = " -> temporary app pwd"
-    recipient = "change this"
+load_dotenv()
+
+def send_email_notification(subject: str, message: str, recipient: str = None) -> None:
+    gmail_user = os.getenv("GMAIL_USER")
+    gmail_app_password = os.getenv("GMAIL_APP_PASSWORD")
+
+    if not gmail_user or not gmail_app_password:
+        print("❌ Email credentials not found in .env file")
+        print("   Please add GMAIL_USER and GMAIL_APP_PASSWORD to your .env file")
+        return False
+
+    if recipient is None:
+        recipient = os.getenv("DEFAULT_RECIPIENT", gmail_user)
 
     msg = MIMEText(message)
     msg['From'] = gmail_user
@@ -16,9 +27,11 @@ def send_email_notification(subject: str, message: str) -> None:
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(gmail_user, gmail_app_password)
             server.send_message(msg)
-        print("✓ Email sent!")
+        print(f"✓ Email sent to {recipient}!")
+        return True
     except Exception as e:
         print(f"✗ Error: {e}")
+        return False
 
 class Agent:
     def __init__(self, name: str):

@@ -1,10 +1,15 @@
 import asyncio
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from bleak import BleakClient, BleakScanner
 from supabase import create_client, Client
 from dotenv import load_dotenv
 import os
+import sys
+
+# Force unbuffered output so logs show in real-time
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
 
 # Load environment variables
 load_dotenv()
@@ -64,7 +69,7 @@ class SupabaseDrivingMonitor:
                 'arduino_id': self.arduino_id,
                 'status': 'active',
                 'safety_score': 100,
-                'started_at': datetime.utcnow().isoformat()
+                'started_at': datetime.now(timezone.utc).isoformat()
             }
 
             session_response = self.supabase.table('driving_sessions').insert(session_data).execute()
@@ -75,11 +80,14 @@ class SupabaseDrivingMonitor:
             self.supabase.table('drivers').update({
                 'status': 'active',
                 'connection_status': 'online',
-                'last_active': datetime.utcnow().isoformat(),
-                'last_heartbeat': datetime.utcnow().isoformat()
+                'last_active': datetime.now(timezone.utc).isoformat(),
+                'last_heartbeat': datetime.now(timezone.utc).isoformat()
             }).eq('id', self.driver_id).execute()
 
             print(f"🟢 Driver is now ONLINE")
+
+            # Send email notification to supervisor
+            self.send_supervisor_notification()
 
             # Start heartbeat, score recovery, and timeout tasks
             self.heartbeat_task = asyncio.create_task(self.heartbeat_loop())
@@ -98,10 +106,26 @@ class SupabaseDrivingMonitor:
             while True:
                 await asyncio.sleep(10)
                 self.supabase.table('drivers').update({
-                    'last_heartbeat': datetime.utcnow().isoformat()
+                    'last_heartbeat': datetime.now(timezone.utc).isoformat()
                 }).eq('id', self.driver_id).execute()
         except asyncio.CancelledError:
             print("Heartbeat stopped")
+
+    def send_supervisor_notification(self):
+        """Send email notification to supervisor when driver goes online"""
+        try:
+            import subprocess
+            print(f"📧 Sending supervisor notification for driver {self.driver_id}...")
+
+            # Run notification script in background
+            subprocess.Popen(
+                [sys.executable, 'notify_supervisor.py', self.driver_id],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            print("   ✓ Notification triggered")
+        except Exception as e:
+            print(f"   ⚠️  Could not send notification: {e}")
 
     async def score_recovery_loop(self):
         """Check for score recovery every 5 seconds during safe driving"""
@@ -162,7 +186,7 @@ class SupabaseDrivingMonitor:
                 'z': z,
                 'event_type': event_type,
                 'count_at_time': count,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
 
             self.supabase.table('sensor_readings').insert(sensor_data).execute()
@@ -185,7 +209,7 @@ class SupabaseDrivingMonitor:
                 'z': z,
                 'count_at_time': count,
                 'severity': severity,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
 
             self.supabase.table('events').insert(event_data).execute()
@@ -230,19 +254,33 @@ class SupabaseDrivingMonitor:
                     current_score -= penalty_points
                     self.last_score_recovery_time = time.time()  # Reset recovery timer
                 else:
-                    # Check if we should recover points (every 5 seconds of safe driving = +5 points)
-                    time_since_recovery = time.time() - self.last_score_recovery_time
-                    print(f"   Time since last recovery: {time_since_recovery:.1f}s | Current score: {current_score}")
-                    if time_since_recovery >= 5:
-                        recovery_cycles = int(time_since_recovery / 5)
-                        recovery_points = recovery_cycles * 5  # 5 points per 5 seconds
-                        new_score = min(100, current_score + recovery_points)
-                        current_score = new_score
-                        self.last_score_recovery_time = time.time()
-                        if recovery_points > 0:
-                            print(f"✨ Good driving! Safety score +{recovery_points} → {current_score}")
+                    # Check MOST RECENT event from BOTH BLE and attention monitoring
+                    recent_events = self.supabase.table('events').select('timestamp').eq('session_id', self.session_id).order('timestamp', desc=True).limit(1).execute()
+
+                    if recent_events.data:
+                        # Get time since last event (from ANY source - driving or attention)
+                        last_event_timestamp = datetime.fromisoformat(recent_events.data[0]['timestamp'].replace('Z', '+00:00'))
+                        time_since_last_event = (datetime.now(timezone.utc) - last_event_timestamp).total_seconds()
+
+                        print(f"   Time since LAST EVENT (any type): {time_since_last_event:.1f}s | Current score: {current_score}")
+
+                        if time_since_last_event >= 5:
+                            recovery_cycles = int(time_since_last_event / 5)
+                            recovery_points = recovery_cycles * 2  # 2 points per 5 seconds
+                            new_score = min(100, current_score + recovery_points)
+                            current_score = new_score
+                            if recovery_points > 0:
+                                print(f"✨ Good driving! Safety score +{recovery_points} → {current_score}")
+                        else:
+                            print(f"   Not enough time passed for recovery (need 5s, have {time_since_last_event:.1f}s)")
                     else:
-                        print(f"   Not enough time passed for recovery (need 5s, have {time_since_recovery:.1f}s)")
+                        # No events yet, use time since session start
+                        time_since_recovery = time.time() - self.last_score_recovery_time
+                        if time_since_recovery >= 5:
+                            recovery_points = int(time_since_recovery / 5) * 2  # 2 points per 5 seconds
+                            current_score = min(100, current_score + recovery_points)
+                            if recovery_points > 0:
+                                print(f"✨ Good driving! Safety score +{recovery_points} → {current_score}")
 
                 # Clamp score between 0 and 100
                 current_score = max(0, min(100, current_score))
@@ -255,7 +293,7 @@ class SupabaseDrivingMonitor:
                 # Update driver's overall safety score
                 self.supabase.table('drivers').update({
                     'safety_score': current_score,
-                    'last_active': datetime.utcnow().isoformat()
+                    'last_active': datetime.now(timezone.utc).isoformat()
                 }).eq('id', self.driver_id).execute()
 
         except Exception as e:
@@ -338,7 +376,7 @@ class SupabaseDrivingMonitor:
                 # Update session status
                 self.supabase.table('driving_sessions').update({
                     'status': 'completed',
-                    'ended_at': datetime.utcnow().isoformat()
+                    'ended_at': datetime.now(timezone.utc).isoformat()
                 }).eq('id', self.session_id).execute()
                 print(f"   ✓ Session completed: {self.session_id}")
 

@@ -6,16 +6,21 @@ Monitors driver attention using facial recognition and saves events to Supabase
 import cv2
 import time
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from supabase import create_client, Client
 from dotenv import load_dotenv
 import os
+import sys
+
+# Force unbuffered output so logs show in real-time
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
 
 # Load environment variables
 load_dotenv()
 
 class AttentionMonitor:
-    def __init__(self, driver_arduino_id: str = "642B8DC2-D778-8A47-20C2-B91C64716DBF"):
+    def __init__(self, driver_arduino_id: str = "642B8DC2-D778-8A47-20C2-B91C64716DBF", iphone_camera_index: int = None):
         self.driver_arduino_id = driver_arduino_id
         self.driver_id = None
         self.session_id = None
@@ -44,28 +49,34 @@ class AttentionMonitor:
         self.supabase: Client = create_client(supabase_url, supabase_key)
         print(f"✅ Connected to Supabase")
 
-        # Initialize CV2 - Use camera 1 (iPhone Continuity Camera)
-        IPHONE_CAMERA_INDEX = 1
+        # Initialize CV2 - Use iPhone camera (index 1)
+        IPHONE_CAMERA_INDEX = iphone_camera_index if iphone_camera_index is not None else 1
+
         print(f"\n📱 Connecting to iPhone camera (index {IPHONE_CAMERA_INDEX})...")
 
         self.cap = cv2.VideoCapture(IPHONE_CAMERA_INDEX)
 
-        if not self.cap.isOpened():
-            print("\n❌ iPhone camera not available!")
-            print("📱 Troubleshooting:")
-            print("   1. Make sure your iPhone is unlocked and nearby")
-            print("   2. Check that Continuity Camera is enabled on both devices")
-            print("   3. Try running: python3 test_camera.py")
-            raise ValueError("iPhone camera not available at index 1")
+        if self.cap.isOpened():
+            ret, test_frame = self.cap.read()
+            if ret and test_frame is not None:
+                print(f"✅ iPhone camera connected!")
+                print(f"   Resolution: {test_frame.shape[1]}x{test_frame.shape[0]}")
+                camera_found = True
+            else:
+                print("❌ Cannot read from iPhone camera!")
+                self.cap.release()
+                camera_found = False
+        else:
+            camera_found = False
 
-        # Test reading a frame
-        ret, test_frame = self.cap.read()
-        if not ret or test_frame is None:
-            print("❌ Cannot read from iPhone camera!")
-            self.cap.release()
-            raise ValueError("iPhone camera opened but cannot read frames")
-
-        print(f"✅ iPhone camera connected! (Resolution: {test_frame.shape[1]}x{test_frame.shape[0]})\n")
+        if not camera_found:
+            print("\n⚠️  No camera available!")
+            print("📱 The attention monitoring will not run.")
+            print("   To use attention monitoring:")
+            print("   1. Connect your iPhone via Continuity Camera")
+            print("   2. Or ensure your Mac's built-in camera is available")
+            print("   3. Then restart the monitoring system")
+            raise ValueError("No camera available - attention monitoring disabled")
 
         self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         self.eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
@@ -85,8 +96,8 @@ class AttentionMonitor:
             self.driver_id = driver['id']
             print(f"✅ Found driver: {driver['name']} ({driver['email']})")
 
-            # Find active session for this driver
-            session_response = self.supabase.table('driving_sessions').select('*').eq('driver_id', self.driver_id).eq('status', 'active').execute()
+            # Find MOST RECENT active session for this driver (same one BLE is using)
+            session_response = self.supabase.table('driving_sessions').select('*').eq('driver_id', self.driver_id).eq('status', 'active').order('started_at', desc=True).limit(1).execute()
 
             if not session_response.data:
                 print(f"⚠️  No active driving session found - waiting for session to start...")
@@ -94,6 +105,7 @@ class AttentionMonitor:
 
             self.session_id = session_response.data[0]['id']
             print(f"✅ Found active session: {self.session_id}")
+            print(f"   Session started at: {session_response.data[0]['started_at'][:19]}")
             return True
 
         except Exception as e:
@@ -129,7 +141,7 @@ class AttentionMonitor:
                 'z': 0,
                 'count_at_time': 0,
                 'severity': 'high' if event_type in ['DROWSY', 'EYES_CLOSED'] else 'medium',
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
 
             self.supabase.table('events').insert(event_data).execute()
@@ -170,7 +182,7 @@ class AttentionMonitor:
                 # Update driver
                 self.supabase.table('drivers').update({
                     'safety_score': new_score,
-                    'last_active': datetime.utcnow().isoformat()
+                    'last_active': datetime.now(timezone.utc).isoformat()
                 }).eq('id', self.driver_id).execute()
 
                 print(f"📊 Safety score updated: {current_score} → {new_score}")
@@ -180,11 +192,17 @@ class AttentionMonitor:
 
     def process_frame(self, frame, gray, faces):
         """Process frame for attention detection"""
+        # Debug: Print every 10th frame to show it's running
+        if not hasattr(self, '_frame_count'):
+            self._frame_count = 0
+        self._frame_count += 1
+
         if len(faces) > 0:
             # Face detected, now check for eyes
             for (x, y, w, h) in faces:
                 roi_gray = gray[y:y+h, x:x+w]
-                eyes = self.eye_cascade.detectMultiScale(roi_gray, 1.1, 5)
+                # More lenient eye detection: minNeighbors 3 (was 5)
+                eyes = self.eye_cascade.detectMultiScale(roi_gray, 1.1, 3, minSize=(15, 15))
 
                 if len(eyes) >= 2:
                     # Both eyes detected
@@ -245,16 +263,16 @@ class AttentionMonitor:
 
     def run(self):
         """Main monitoring loop"""
-        print("\n=== ATTENTION MONITOR WITH SUPABASE ===")
-        print("Monitoring driver attention and saving to Supabase")
-        print("Press Ctrl+C to stop\n")
+        print("\n=== ATTENTION MONITOR WITH SUPABASE ===", flush=True)
+        print("Monitoring driver attention and saving to Supabase", flush=True)
+        print("Press Ctrl+C to stop\n", flush=True)
 
         # Wait for active session
         while not self.find_active_session():
-            print("⏳ Waiting for active driving session...")
+            print("⏳ Waiting for active driving session...", flush=True)
             time.sleep(3)
 
-        print("\n🟢 Session found - starting attention monitoring!\n")
+        print("\n🟢 Session found - starting attention monitoring!\n", flush=True)
 
         try:
             while True:
@@ -271,7 +289,11 @@ class AttentionMonitor:
                     frame = cv2.resize(frame, (new_width, new_height))
 
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                faces = self.face_cascade.detectMultiScale(gray, 1.05, 3)
+
+                # More lenient face detection for iPhone camera
+                # scaleFactor: 1.1 (was 1.05, higher = faster but less accurate)
+                # minNeighbors: 2 (was 3, lower = more detections)
+                faces = self.face_cascade.detectMultiScale(gray, 1.1, 2, minSize=(30, 30))
 
                 self.process_frame(frame, gray, faces)
 
