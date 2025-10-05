@@ -47,7 +47,7 @@ class NVIDIAAgent(Agent):
 
 if __name__ == "__main__":
     subject = "🚙 Driver Alert! 🚙"
-    message = "A driver linked to your account has started a trip! Monitor their drive here: http://localhost:8501" #CHANGE THIS
+    message = "A driver linked to your account has started a trip! Monitor their drive here: http://localhost:5173" #CHANGE THIS
 
     # create the agent, add the email task, run it
     agent = NVIDIAAgent()

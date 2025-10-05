@@ -20,3 +20,9 @@ cryptography>=42.0.0
 # Flask API for Arduino data ingestion
 flask>=3.0.0
 flask-cors>=4.0.0
+
+# Bluetooth Low Energy for Arduino Nano 33 BLE
+bleak>=1.1.0
+
+# Supabase Client
+supabase>=2.0.0
