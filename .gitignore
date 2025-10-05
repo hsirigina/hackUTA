@@ -65,3 +65,13 @@ htmlcov/
 # Flask
 instance/
 .webassets-cache
+
+# Frontend/Node
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.env
+frontend/.env.local
+frontend/build/
+frontend/.cache/
+frontend/.vite/
