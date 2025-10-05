@@ -11,6 +11,13 @@ class SpeechAlertService {
     this.useElevenLabs = !!import.meta.env.VITE_ELEVENLABS_API_KEY && import.meta.env.VITE_ELEVENLABS_API_KEY !== 'your_api_key_here'
     this.elevenLabsApiKey = import.meta.env.VITE_ELEVENLABS_API_KEY
     this.elevenLabsVoiceId = import.meta.env.VITE_ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM' // Rachel voice
+
+    // Log which TTS system is being used
+    if (this.useElevenLabs) {
+      console.log('🎙️ Speech Alert System: Using ElevenLabs AI Voice (Voice ID:', this.elevenLabsVoiceId + ')')
+    } else {
+      console.log('🔊 Speech Alert System: Using Browser Web Speech API (Free TTS)')
+    }
   }
 
   /**
@@ -19,9 +26,12 @@ class SpeechAlertService {
    * @param {Object} options - Voice options (rate, pitch, volume)
    */
   async speak(message, options = {}) {
+    console.log('🔔 Alert triggered:', message.substring(0, 50) + '...')
     if (this.useElevenLabs) {
+      console.log('   → Using ElevenLabs API')
       await this.speakWithElevenLabs(message)
     } else {
+      console.log('   → Using Browser TTS')
       this.speakWithWebSpeech(message, options)
     }
   }
@@ -147,6 +157,7 @@ class SpeechAlertService {
    */
   async speakWithElevenLabs(message) {
     try {
+      console.log('   📡 Calling ElevenLabs API...')
       const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${this.elevenLabsVoiceId}`, {
         method: 'POST',
         headers: {
@@ -167,27 +178,30 @@ class SpeechAlertService {
       })
 
       if (!response.ok) {
-        console.error('ElevenLabs API error:', response.statusText)
-        // Fallback to Web Speech API
+        console.error('   ❌ ElevenLabs API error:', response.status, response.statusText)
+        console.log('   ⚠️  Falling back to Browser TTS')
         this.speakWithWebSpeech(message, { rate: 1.1 })
         return
       }
 
+      console.log('   ✅ ElevenLabs response received, generating audio...')
       const audioBlob = await response.blob()
       const audioUrl = URL.createObjectURL(audioBlob)
       const audio = new Audio(audioUrl)
 
+      console.log('   🔊 Playing ElevenLabs audio')
       // Play the audio
       await audio.play()
 
       // Clean up the blob URL after playing
       audio.addEventListener('ended', () => {
         URL.revokeObjectURL(audioUrl)
+        console.log('   ✓ Audio playback completed')
       })
 
     } catch (error) {
-      console.error('ElevenLabs error:', error)
-      // Fallback to Web Speech API
+      console.error('   ❌ ElevenLabs error:', error)
+      console.log('   ⚠️  Falling back to Browser TTS')
       this.speakWithWebSpeech(message, { rate: 1.1 })
     }
   }
