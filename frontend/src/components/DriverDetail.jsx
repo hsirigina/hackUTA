@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import CircularProgress from './ui/CircularProgress'
+import { speechAlert } from '../utils/speechAlert'
 
 const DriverDetail = () => {
   const { driverId } = useParams()
@@ -26,6 +27,9 @@ const DriverDetail = () => {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState(null)
+  const [isAlertActive, setIsAlertActive] = useState(false)
+  const previousStatusRef = useRef(null)
+  const previousEventCountRef = useRef(0)
 
   // Check auth on mount
   useEffect(() => {
@@ -47,6 +51,65 @@ const DriverDetail = () => {
       }
     }
   }, [driverId, user])
+
+  // Monitor for critical alerts and trigger speech warnings
+  useEffect(() => {
+    if (!driver || !currentSession) return
+
+    const driverSummary = getDriverSummary()
+    const currentEventCount = events.length
+
+    // Check for new events
+    if (currentEventCount > previousEventCountRef.current && events.length > 0) {
+      const latestEvent = events[0]
+
+      // Alert for critical event types
+      if (['DROWSY', 'EYES_CLOSED'].includes(latestEvent.event_type)) {
+        setIsAlertActive(true)
+        speechAlert.alertDangerousEvent(latestEvent.event_type, driver.name)
+        setTimeout(() => setIsAlertActive(false), 5000)
+      } else if (latestEvent.severity === 'high') {
+        setIsAlertActive(true)
+        speechAlert.alertDangerousEvent(latestEvent.event_type, driver.name)
+        setTimeout(() => setIsAlertActive(false), 5000)
+      }
+    }
+
+    // Alert for critical status change
+    if (driverSummary.status === 'critical' && previousStatusRef.current !== 'critical') {
+      const eventCounts = getEventCounts()
+      const issues = []
+      if (eventCounts.harsh_brake > 0) issues.push('harsh braking')
+      if (eventCounts.swerving > 0) issues.push('swerving')
+      if (eventCounts.aggressive > 0) issues.push('aggressive driving')
+      if (eventCounts.distracted > 0) issues.push('distraction')
+      if (eventCounts.drowsy > 0) issues.push('drowsiness')
+
+      const issueText = issues.join(' and ')
+      setIsAlertActive(true)
+      speechAlert.alertCritical(driver.name, issueText)
+      setTimeout(() => setIsAlertActive(false), 6000)
+    }
+
+    // Alert for warning status (less urgent)
+    if (driverSummary.status === 'warning' && previousStatusRef.current !== 'warning' && previousStatusRef.current !== 'critical') {
+      setIsAlertActive(true)
+      speechAlert.alertWarning(driver.name)
+      setTimeout(() => setIsAlertActive(false), 4000)
+    }
+
+    // Update refs
+    previousStatusRef.current = driverSummary.status
+    previousEventCountRef.current = currentEventCount
+
+  }, [events, driver, currentSession])
+
+  // Cleanup speech on unmount
+  useEffect(() => {
+    return () => {
+      speechAlert.stop()
+    }
+  }, [])
 
   const checkAuth = async () => {
     const { data: { user: currentUser }, error } = await supabase.auth.getUser()
@@ -160,6 +223,77 @@ const DriverDetail = () => {
     return eventTypes
   }
 
+  const getDriverSummary = () => {
+    if (!currentSession) {
+      return {
+        status: 'info',
+        icon: Activity,
+        color: '#38b6ff',
+        message: 'No active driving session. Driver is currently offline.'
+      }
+    }
+
+    const eventCounts = getEventCounts()
+    const score = currentSession.safety_score || driver.safety_score
+    const totalEvents = events.length
+
+    // Excellent performance
+    if (score >= 90 && totalEvents <= 2) {
+      return {
+        status: 'excellent',
+        icon: CheckCircle,
+        color: '#10b981',
+        message: `${driver.name.split(' ')[0]} is demonstrating excellent driving behavior with a ${score}% safety score. Minimal safety concerns detected. Continue monitoring.`
+      }
+    }
+
+    // Good performance
+    if (score >= 80 && totalEvents <= 5) {
+      return {
+        status: 'good',
+        icon: CheckCircle,
+        color: '#10b981',
+        message: `${driver.name.split(' ')[0]} is maintaining good driving habits with a ${score}% safety score. A few minor incidents detected, but overall performance is satisfactory.`
+      }
+    }
+
+    // Warning - identify problem areas
+    if (score >= 70 || totalEvents <= 10) {
+      const problems = []
+      if (eventCounts.harsh_brake > 2) problems.push('frequent hard braking')
+      if (eventCounts.swerving > 2) problems.push('sharp turns')
+      if (eventCounts.aggressive > 2) problems.push('aggressive acceleration')
+      if (eventCounts.distracted > 2) problems.push('distraction')
+      if (eventCounts.drowsy > 0) problems.push('drowsiness')
+
+      const issueText = problems.length > 0 ? problems.join(', ') : 'multiple safety concerns'
+
+      return {
+        status: 'warning',
+        icon: AlertTriangle,
+        color: '#eab308',
+        message: `${driver.name.split(' ')[0]} is showing concerning driving patterns with ${issueText}. Current safety score: ${score}%. Monitor closely and consider intervention.`
+      }
+    }
+
+    // Critical - unsafe driving
+    const problems = []
+    if (eventCounts.harsh_brake > 0) problems.push('harsh braking')
+    if (eventCounts.swerving > 0) problems.push('swerving')
+    if (eventCounts.aggressive > 0) problems.push('aggressive driving')
+    if (eventCounts.distracted > 0) problems.push('distraction')
+    if (eventCounts.drowsy > 0) problems.push('drowsiness')
+
+    const issueText = problems.length > 0 ? problems.join(', ') : 'multiple critical safety violations'
+
+    return {
+      status: 'critical',
+      icon: AlertCircle,
+      color: '#ef4444',
+      message: `ALERT: ${driver.name.split(' ')[0]} is driving unsafely with ${issueText}. Safety score has dropped to ${score}%. Immediate intervention recommended.`
+    }
+  }
+
   const formatDuration = (startTime) => {
     if (!startTime) return '0m'
     const start = new Date(startTime)
@@ -198,6 +332,7 @@ const DriverDetail = () => {
 
   const eventCounts = getEventCounts()
   const recentEventTypes = getRecentEventTypes()
+  const driverSummary = getDriverSummary()
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#12161e' }}>
@@ -214,10 +349,26 @@ const DriverDetail = () => {
             >
               <ArrowLeft className="w-6 h-6" />
             </motion.button>
-            <div>
+            <div className="flex-1">
               <h1 className="text-2xl font-bold" style={{ color: '#ffffff' }}>Driver Details</h1>
               <p className="text-sm" style={{ color: '#a0a0a0' }}>Real-time session monitoring</p>
             </div>
+            {isAlertActive && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg"
+                style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444' }}
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  <AlertCircle className="w-5 h-5 text-red-500" />
+                </motion.div>
+                <span className="text-sm font-medium text-red-500">VERBAL ALERT ACTIVE</span>
+              </motion.div>
+            )}
           </div>
         </div>
       </header>
@@ -255,42 +406,81 @@ const DriverDetail = () => {
                       <span className="text-sm">Offline</span>
                     </div>
                   )}
+                  {currentSession && (
+                    <div className="flex items-center gap-2 px-3 py-1 rounded-lg" style={{ backgroundColor: '#12161e', border: `1px solid ${driverSummary.color}` }}>
+                      <Clock className="w-4 h-4" style={{ color: driverSummary.color }} />
+                      <span className="text-sm font-medium" style={{ color: driverSummary.color }}>
+                        {formatDuration(currentSession.started_at)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
             <div className="flex items-center justify-center">
-              <CircularProgress value={driver.safety_score} size={160} strokeWidth={14} />
+              <CircularProgress
+                value={driver.safety_score}
+                size={160}
+                strokeWidth={14}
+                color={driverSummary.color}
+              />
             </div>
           </div>
         </motion.div>
 
-        {/* Current Session Status */}
-        {currentSession ? (
+        {/* Driver Performance Summary */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="rounded-2xl shadow-lg p-6 mb-8"
+          style={{
+            backgroundColor: driverSummary.status === 'critical' ? 'rgba(239, 68, 68, 0.1)' :
+                           driverSummary.status === 'warning' ? 'rgba(234, 179, 8, 0.1)' :
+                           driverSummary.status === 'excellent' || driverSummary.status === 'good' ? 'rgba(16, 185, 129, 0.1)' :
+                           '#1a1f2e',
+            border: driverSummary.status === 'critical' ? '2px solid #ef4444' :
+                    driverSummary.status === 'warning' ? '2px solid #eab308' :
+                    driverSummary.status === 'excellent' || driverSummary.status === 'good' ? '2px solid #10b981' :
+                    '1px solid #2a2f3e'
+          }}
+        >
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-xl" style={{
+              backgroundColor: driverSummary.status === 'critical' ? 'rgba(239, 68, 68, 0.2)' :
+                             driverSummary.status === 'warning' ? 'rgba(234, 179, 8, 0.2)' :
+                             driverSummary.status === 'excellent' || driverSummary.status === 'good' ? 'rgba(16, 185, 129, 0.2)' :
+                             'rgba(56, 182, 255, 0.2)'
+            }}>
+              <driverSummary.icon className="w-8 h-8" style={{
+                color: driverSummary.status === 'critical' ? '#ef4444' :
+                       driverSummary.status === 'warning' ? '#eab308' :
+                       driverSummary.status === 'excellent' || driverSummary.status === 'good' ? '#10b981' :
+                       '#38b6ff'
+              }} />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold mb-2" style={{
+                color: driverSummary.status === 'critical' ? '#ef4444' :
+                       driverSummary.status === 'warning' ? '#eab308' :
+                       driverSummary.status === 'excellent' || driverSummary.status === 'good' ? '#10b981' :
+                       '#ffffff'
+              }}>
+                {driverSummary.status === 'critical' ? 'Critical Alert' :
+                 driverSummary.status === 'warning' ? 'Warning' :
+                 driverSummary.status === 'excellent' ? 'Excellent Performance' :
+                 driverSummary.status === 'good' ? 'Good Performance' :
+                 'Driver Status'}
+              </h3>
+              <p className="leading-relaxed" style={{ color: '#ffffff' }}>
+                {driverSummary.message}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {currentSession && (
           <>
-            {/* Session Header */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="rounded-2xl shadow-lg p-6 mb-8"
-              style={{ backgroundColor: '#38b6ff', color: '#12161e' }}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-2xl font-bold mb-2">Current Session Active</h3>
-                  <p className="opacity-90">Real-time monitoring in progress</p>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-5 h-5" />
-                    <span className="text-lg font-semibold">
-                      {formatDuration(currentSession.started_at)}
-                    </span>
-                  </div>
-                  <p className="opacity-90 text-sm">Session Duration</p>
-                </div>
-              </div>
-            </motion.div>
 
             {/* Driving Event Statistics Grid */}
             <h3 className="text-lg font-bold text-white mb-4">Driving Events</h3>
@@ -468,13 +658,8 @@ const DriverDetail = () => {
                     initial={{ width: 0 }}
                     animate={{ width: `${currentSession.safety_score || driver.safety_score}%` }}
                     transition={{ duration: 1, delay: 0.6 }}
-                    className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${
-                      (currentSession.safety_score || driver.safety_score) >= 90
-                        ? 'bg-green-500'
-                        : (currentSession.safety_score || driver.safety_score) >= 75
-                        ? 'bg-yellow-500'
-                        : 'bg-red-500'
-                    }`}
+                    style={{ backgroundColor: driverSummary.color }}
+                    className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center"
                   ></motion.div>
                 </div>
               </div>
@@ -549,22 +734,6 @@ const DriverDetail = () => {
               </motion.div>
             )}
           </>
-        ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="rounded-2xl shadow-lg p-12 text-center" style={{ backgroundColor: '#1a1f2e', border: '1px solid #2a2f3e' }}
-          >
-            <Activity className="w-16 h-16 mx-auto mb-4" style={{ color: '#a0a0a0' }} />
-            <h3 className="text-2xl font-bold text-white mb-2">No Active Session</h3>
-            <p className="mb-6" style={{ color: '#a0a0a0' }}>
-              This driver doesn't have an active driving session right now.
-            </p>
-            <p className="text-sm" style={{ color: '#a0a0a0' }}>
-              Start the Arduino and run <code className="px-2 py-1 rounded" style={{ backgroundColor: '#12161e', color: '#38b6ff' }}>ble_supabase.py</code> to begin monitoring.
-            </p>
-          </motion.div>
         )}
       </main>
     </div>

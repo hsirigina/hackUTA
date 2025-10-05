@@ -5,7 +5,7 @@ const CircularProgress = ({
   size = 200,
   strokeWidth = 12,
   showPercentage = true,
-  color = '#38b6ff'
+  color = null // If null, auto-detect based on score
 }) => {
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
@@ -14,11 +14,12 @@ const CircularProgress = ({
   // Color based on score
   const getColor = () => {
     if (value >= 90) return '#10b981' // green
-    if (value >= 75) return '#eab308' // yellow
+    if (value >= 80) return '#10b981' // green
+    if (value >= 70) return '#eab308' // yellow
     return '#ef4444' // red
   }
 
-  const progressColor = color === '#38b6ff' && value !== undefined ? getColor() : color
+  const progressColor = color || getColor()
 
   return (
     <div className="relative inline-flex items-center justify-center">
