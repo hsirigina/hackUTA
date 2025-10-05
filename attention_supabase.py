@@ -146,12 +146,12 @@ class AttentionMonitor:
 
             self.supabase.table('events').insert(event_data).execute()
 
-            # Calculate penalty
+            # Calculate penalty (doubled for faster demo)
             penalty_points = {
-                'DISTRACTED': 3,    # Looking away
-                'DROWSY': 5,        # Eyes closed
-                'EYES_CLOSED': 5    # No eyes detected
-            }.get(event_type, 3)
+                'DISTRACTED': 6,    # Looking away
+                'DROWSY': 10,        # Eyes closed
+                'EYES_CLOSED': 10    # No eyes detected
+            }.get(event_type, 6)
 
             print(f"💾 {event_type} event | Safety score -{penalty_points}")
 

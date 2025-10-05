@@ -144,6 +144,16 @@ class SpeechAlertService {
   }
 
   /**
+   * Alert for good/excellent driving
+   */
+  alertGoodDriving(driverName) {
+    if (!this.canAlert('good')) return
+
+    const message = `Great job! ${driverName} is demonstrating excellent driving behavior. Keep up the good work.`
+    this.speak(message, { rate: 1.0 })
+  }
+
+  /**
    * Stop any ongoing speech
    */
   stop() {

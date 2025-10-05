@@ -214,11 +214,11 @@ class SupabaseDrivingMonitor:
 
             self.supabase.table('events').insert(event_data).execute()
 
-            # Calculate penalty points based on event type
+            # Calculate penalty points based on event type (doubled for faster demo)
             penalty_points = {
-                'AGGRESSIVE': 5,
-                'HARSH_BRAKE': 3,
-                'SWERVING': 1
+                'AGGRESSIVE': 10,
+                'HARSH_BRAKE': 6,
+                'SWERVING': 2
             }.get(event_type, 0)
 
             print(f"💾 {event_type} event (Severity: {severity}) | Safety score -{penalty_points}")

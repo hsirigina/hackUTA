@@ -52,28 +52,11 @@ const DriverDetail = () => {
     }
   }, [driverId, user])
 
-  // Monitor for critical alerts and trigger speech warnings
+  // Monitor for status changes and trigger speech warnings (only for status changes, not individual events)
   useEffect(() => {
     if (!driver || !currentSession) return
 
     const driverSummary = getDriverSummary()
-    const currentEventCount = events.length
-
-    // Check for new events
-    if (currentEventCount > previousEventCountRef.current && events.length > 0) {
-      const latestEvent = events[0]
-
-      // Alert for critical event types
-      if (['DROWSY', 'EYES_CLOSED'].includes(latestEvent.event_type)) {
-        setIsAlertActive(true)
-        speechAlert.alertDangerousEvent(latestEvent.event_type, driver.name)
-        setTimeout(() => setIsAlertActive(false), 5000)
-      } else if (latestEvent.severity === 'high') {
-        setIsAlertActive(true)
-        speechAlert.alertDangerousEvent(latestEvent.event_type, driver.name)
-        setTimeout(() => setIsAlertActive(false), 5000)
-      }
-    }
 
     // Alert for critical status change
     if (driverSummary.status === 'critical' && previousStatusRef.current !== 'critical') {
@@ -98,11 +81,10 @@ const DriverDetail = () => {
       setTimeout(() => setIsAlertActive(false), 4000)
     }
 
-    // Update refs
+    // Update ref
     previousStatusRef.current = driverSummary.status
-    previousEventCountRef.current = currentEventCount
 
-  }, [events, driver, currentSession])
+  }, [driver, currentSession, events])
 
   // Cleanup speech on unmount
   useEffect(() => {
