@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   User,
@@ -11,87 +12,157 @@ import {
   ChevronRight,
   LogOut,
   Bell,
-  Settings
+  Settings,
+  Wifi,
+  WifiOff
 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 
 const Dashboard = () => {
-  // Mock supervisor data
-  const supervisor = {
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@company.com',
-    role: 'Fleet Supervisor',
-    avatar: 'SJ'
+  const navigate = useNavigate()
+  const [drivers, setDrivers] = useState([])
+  const [supervisor, setSupervisor] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(null)
+
+  // Check auth and fetch supervisor info on mount
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  // Fetch drivers from Supabase with polling every 2 seconds
+  useEffect(() => {
+    if (user) {
+      fetchDrivers()
+
+      // Poll every 2 seconds
+      const interval = setInterval(() => {
+        fetchDrivers()
+      }, 2000)
+
+      return () => {
+        clearInterval(interval)
+      }
+    }
+  }, [user])
+
+  const checkAuth = async () => {
+    try {
+      // Get current user
+      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
+
+      if (authError || !currentUser) {
+        navigate('/')
+        return
+      }
+
+      setUser(currentUser)
+
+      // Fetch supervisor info
+      const { data: supervisorData, error: supervisorError } = await supabase
+        .from('supervisors')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .single()
+
+      if (supervisorError) {
+        console.error('Error fetching supervisor:', supervisorError)
+        // Create supervisor if doesn't exist
+        const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0]
+        const { data: newSupervisor } = await supabase
+          .from('supervisors')
+          .insert({
+            user_id: currentUser.id,
+            name: name,
+            email: currentUser.email,
+            role: 'Fleet Supervisor'
+          })
+          .select()
+          .single()
+
+        setSupervisor(newSupervisor || {
+          name: name,
+          email: currentUser.email,
+          role: 'Fleet Supervisor',
+          avatar: name.split(' ').map(n => n[0]).join('').toUpperCase()
+        })
+      } else {
+        setSupervisor({
+          ...supervisorData,
+          avatar: supervisorData.name.split(' ').map(n => n[0]).join('').toUpperCase()
+        })
+      }
+    } catch (error) {
+      console.error('Error in checkAuth:', error)
+      navigate('/')
+    }
   }
 
-  // Mock drivers data with Arduino associations
-  const drivers = [
-    {
-      id: 1,
-      name: 'Michael Chen',
-      email: 'mchen@company.com',
-      arduinoId: 'ARD-001',
-      status: 'active',
-      lastActive: '2 mins ago',
-      tripsToday: 5,
-      safetyScore: 95,
-      avatar: 'MC'
-    },
-    {
-      id: 2,
-      name: 'Emily Rodriguez',
-      email: 'erodriguez@company.com',
-      arduinoId: 'ARD-002',
-      status: 'active',
-      lastActive: '5 mins ago',
-      tripsToday: 3,
-      safetyScore: 88,
-      avatar: 'ER'
-    },
-    {
-      id: 3,
-      name: 'James Wilson',
-      email: 'jwilson@company.com',
-      arduinoId: 'ARD-003',
-      status: 'inactive',
-      lastActive: '1 hour ago',
-      tripsToday: 7,
-      safetyScore: 92,
-      avatar: 'JW'
-    },
-    {
-      id: 4,
-      name: 'Aisha Patel',
-      email: 'apatel@company.com',
-      arduinoId: 'ARD-004',
-      status: 'warning',
-      lastActive: 'Just now',
-      tripsToday: 4,
-      safetyScore: 76,
-      avatar: 'AP'
-    },
-    {
-      id: 5,
-      name: 'David Kim',
-      email: 'dkim@company.com',
-      arduinoId: 'ARD-005',
-      status: 'active',
-      lastActive: '10 mins ago',
-      tripsToday: 6,
-      safetyScore: 98,
-      avatar: 'DK'
-    },
-    {
-      id: 6,
-      name: 'Sofia Martinez',
-      email: 'smartinez@company.com',
-      arduinoId: 'ARD-006',
-      status: 'active',
-      lastActive: '3 mins ago',
-      tripsToday: 2,
-      safetyScore: 91,
-      avatar: 'SM'
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    navigate('/')
+  }
+
+  const fetchDrivers = async () => {
+    try {
+      // Fetch all drivers (no join required)
+      const { data: driversData, error: driversError } = await supabase
+        .from('drivers')
+        .select('*')
+        .order('last_active', { ascending: false })
+
+      if (driversError) throw driversError
+
+      // Fetch all sessions for today
+      const today = new Date().toISOString().split('T')[0]
+      const { data: sessionsData } = await supabase
+        .from('driving_sessions')
+        .select('*')
+        .gte('started_at', `${today}T00:00:00`)
+
+      // Process drivers data
+      const processedDrivers = driversData.map(driver => {
+        const driverSessions = sessionsData?.filter(s => s.driver_id === driver.id) || []
+        const activeSession = driverSessions.find(s => s.status === 'active')
+
+        return {
+          id: driver.id,
+          name: driver.name,
+          email: driver.email,
+          arduinoId: driver.arduino_id,
+          status: driver.status,
+          connectionStatus: driver.connection_status || 'offline',
+          lastActive: formatLastActive(driver.last_active),
+          tripsToday: driverSessions.length,
+          safetyScore: driver.safety_score || 100,
+          avatar: getInitials(driver.name),
+          hasActiveSession: !!activeSession
+        }
+      })
+
+      setDrivers(processedDrivers)
+    } catch (error) {
+      console.error('Error fetching drivers:', error)
+    } finally {
+      setLoading(false)
     }
-  ]
+  }
+
+  const getInitials = (name) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase()
+  }
+
+  const formatLastActive = (timestamp) => {
+    if (!timestamp) return 'Never'
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diff = Math.floor((now - date) / 1000) // seconds
+
+    if (diff < 60) return 'Just now'
+    if (diff < 3600) return `${Math.floor(diff / 60)} mins ago`
+    if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`
+    return `${Math.floor(diff / 86400)} days ago`
+  }
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -115,6 +186,17 @@ const Dashboard = () => {
     if (score >= 90) return 'text-green-600'
     if (score >= 75) return 'text-yellow-600'
     return 'text-red-600'
+  }
+
+  if (loading || !supervisor) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -154,6 +236,7 @@ const Dashboard = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={handleLogout}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <LogOut className="w-5 h-5 text-gray-600" />
@@ -196,9 +279,9 @@ const Dashboard = () => {
               </div>
               <div className="text-center px-6 py-3 bg-green-50 rounded-xl">
                 <div className="text-2xl font-bold text-green-600">
-                  {drivers.filter(d => d.status === 'active').length}
+                  {drivers.filter(d => d.connectionStatus === 'online').length}
                 </div>
-                <div className="text-sm text-gray-600">Active Now</div>
+                <div className="text-sm text-gray-600">Live Drivers</div>
               </div>
             </div>
           </div>
@@ -246,11 +329,29 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  {/* Arduino ID */}
+                  {/* Arduino ID with Connection Status */}
                   <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-gray-600">Arduino ID</span>
                       <span className="font-mono font-semibold text-gray-900">{driver.arduinoId}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {driver.connectionStatus === 'online' ? (
+                        <>
+                          <div className="flex items-center gap-1 text-green-600">
+                            <CheckCircle className="w-4 h-4" />
+                            <Wifi className="w-3 h-3" />
+                          </div>
+                          <span className="text-xs font-medium text-green-600">Live Connected</span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-1 text-gray-400">
+                            <WifiOff className="w-3 h-3" />
+                          </div>
+                          <span className="text-xs text-gray-500">Offline</span>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -282,6 +383,7 @@ const Dashboard = () => {
                     </div>
                     <motion.button
                       whileHover={{ x: 5 }}
+                      onClick={() => navigate(`/driver/${driver.id}`)}
                       className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center gap-1"
                     >
                       View Details

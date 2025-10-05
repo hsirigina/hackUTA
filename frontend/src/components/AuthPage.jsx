@@ -28,6 +28,10 @@ const AuthPage = () => {
           password: formData.password,
         })
         if (error) throw error
+
+        // Check if supervisor entry exists, create if not
+        await ensureSupervisorExists(data.user)
+
         setMessage({ type: 'success', text: 'Welcome back! Redirecting...' })
         setTimeout(() => navigate('/dashboard'), 1000)
       } else {
@@ -41,12 +45,44 @@ const AuthPage = () => {
           }
         })
         if (error) throw error
-        setMessage({ type: 'success', text: 'Account created! Please check your email to verify.' })
+
+        // Create supervisor entry for new user
+        if (data.user) {
+          await ensureSupervisorExists(data.user, formData.fullName)
+        }
+
+        setMessage({ type: 'success', text: 'Account created! You can now sign in.' })
       }
     } catch (error) {
       setMessage({ type: 'error', text: error.message })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const ensureSupervisorExists = async (user, fullName = null) => {
+    try {
+      // Check if supervisor exists
+      const { data: existingSupervisor } = await supabase
+        .from('supervisors')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!existingSupervisor) {
+        // Create supervisor entry
+        const name = fullName || user.user_metadata?.full_name || user.email.split('@')[0]
+        await supabase
+          .from('supervisors')
+          .insert({
+            user_id: user.id,
+            name: name,
+            email: user.email,
+            role: 'Fleet Supervisor'
+          })
+      }
+    } catch (error) {
+      console.error('Error ensuring supervisor exists:', error)
     }
   }
 
