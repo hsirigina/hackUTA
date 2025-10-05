@@ -113,10 +113,31 @@ const Dashboard = () => {
         .select('*')
         .gte('started_at', `${today}T00:00:00`)
 
+      // Fetch all sessions for each driver to calculate average
+      const { data: allSessionsData } = await supabase
+        .from('driving_sessions')
+        .select('driver_id, safety_score')
+        .eq('status', 'completed')
+
       // Process drivers data
       const processedDrivers = driversData.map(driver => {
         const driverSessions = sessionsData?.filter(s => s.driver_id === driver.id) || []
         const activeSession = driverSessions.find(s => s.status === 'active')
+
+        // Calculate safety score
+        let safetyScore = driver.safety_score || 100
+
+        if (activeSession) {
+          // If active, use the current session's safety score
+          safetyScore = activeSession.safety_score || driver.safety_score || 100
+        } else {
+          // If inactive, calculate average of all completed sessions
+          const completedSessions = allSessionsData?.filter(s => s.driver_id === driver.id) || []
+          if (completedSessions.length > 0) {
+            const totalScore = completedSessions.reduce((sum, session) => sum + (session.safety_score || 0), 0)
+            safetyScore = Math.round(totalScore / completedSessions.length)
+          }
+        }
 
         return {
           id: driver.id,
@@ -127,7 +148,7 @@ const Dashboard = () => {
           connectionStatus: driver.connection_status || 'offline',
           lastActive: formatLastActive(driver.last_active),
           tripsToday: driverSessions.length,
-          safetyScore: driver.safety_score || 100,
+          safetyScore: safetyScore,
           avatar: getInitials(driver.name),
           hasActiveSession: !!activeSession
         }
@@ -283,11 +304,12 @@ const Dashboard = () => {
                 transition={{ delay: index * 0.1 }}
                 whileHover={{ scale: 1.02, y: -4 }}
                 onClick={() => handleDriverClick(driver)}
-                className="rounded-2xl p-6 border flex-shrink-0 cursor-pointer"
+                className="rounded-2xl p-6 flex-shrink-0 cursor-pointer"
                 style={{
                   width: '320px',
                   backgroundColor: '#1a1f2e',
-                  borderColor: driver.connectionStatus === 'online' ? '#38b6ff' : '#2a2f3e'
+                  border: driver.connectionStatus === 'online' ? '2px solid #10b981' : '1px solid #2a2f3e',
+                  boxShadow: driver.connectionStatus === 'online' ? '0 0 20px rgba(16, 185, 129, 0.3)' : undefined
                 }}
               >
                 {/* Driver Header */}
@@ -331,9 +353,9 @@ const Dashboard = () => {
                 {/* Status Badge */}
                 <div className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: '#12161e' }}>
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${getStatusColor(driver.status)}`}></div>
+                    <div className={`w-2 h-2 rounded-full ${driver.connectionStatus === 'online' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
                     <span className="text-sm font-medium" style={{ color: '#ffffff' }}>
-                      {driver.status === 'active' ? 'Active' : driver.status === 'warning' ? 'Warning' : 'Inactive'}
+                      {driver.connectionStatus === 'online' ? 'Active' : 'Inactive'}
                     </span>
                   </div>
                   <span className="text-xs" style={{ color: '#a0a0a0' }}>{driver.lastActive}</span>
