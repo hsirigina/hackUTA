@@ -159,15 +159,15 @@ const AuthPage = () => {
   ]
 
   return (
-    <div className="min-h-screen flex overflow-hidden">
+    <div className="min-h-screen flex overflow-hidden" style={{ backgroundColor: '#030624' }}>
       {/* Left Panel - Decorative */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#060606]">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ backgroundColor: '#030624' }}>
         <Squares 
           direction="diagonal"
           speed={0.5}
           squareSize={40}
           borderColor="#333" 
-          hoverFillColor="#444"
+          hoverFillColor="#222"
         />
 
         {/* Welcome Text */}
@@ -179,11 +179,12 @@ const AuthPage = () => {
             className="text-center"
           >
             <h2 className="text-5xl font-bold mb-6" style={{ 
-              fontFamily: 'Impact, "Arial Black", sans-serif', 
-              textShadow: '3px 3px 6px rgba(0,0,0,0.8), 0 0 10px rgba(255,255,255,0.3)', 
+              fontFamily: 'Orbitron, monospace', 
+              color: '#ffffff',
               letterSpacing: '3px',
               textTransform: 'uppercase',
-              fontWeight: '900'
+              fontWeight: '900',
+              textShadow: '0 0 2px #ffffff, 0 0 4px #38b6ff, 0 0 8px #38b6ff'
             }}>
               {typewriterText}
             </h2>
@@ -192,10 +193,12 @@ const AuthPage = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
-              className="text-lg font-mono text-gray-300"
+              className="text-lg"
               style={{ 
-                textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-                letterSpacing: '1px'
+                color: '#ffffff',
+                letterSpacing: '1px',
+                fontFamily: 'Fira Code, monospace',
+                textTransform: 'lowercase'
               }}
             >
               {descriptionText}<span style={{ opacity: showDescriptionCursor ? 1 : 0 }}>|</span>
@@ -205,7 +208,7 @@ const AuthPage = () => {
       </div>
 
       {/* Right Panel - Auth Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-100 relative z-10">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative z-10" style={{ backgroundColor: '#f5f5f5' }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -214,41 +217,77 @@ const AuthPage = () => {
         >
           {/* Logo/Brand */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-semibold" style={{ color: '#0C1E8B', fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <h1 className="text-3xl font-semibold" style={{ 
+              color: '#38b6ff', 
+              fontFamily: 'Orbitron, monospace',
+              fontWeight: '900',
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              textShadow: '0 0 2px #ffffff, 0 0 4px #38b6ff, 0 0 8px #38b6ff'
+            }}>
               Welcome to <span style={{ 
-                fontFamily: 'Impact, "Arial Black", sans-serif',
+                fontFamily: 'Orbitron, monospace',
                 letterSpacing: '2px',
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                fontWeight: '900'
               }}>PARKER</span>
             </h1>
-            <p className="text-gray-700 mt-2" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-              {isLogin ? 'Sign in to continue your journey' : 'Create your account to get started'}
+            <p className="mt-2" style={{ 
+              color: '#12161e', 
+              fontFamily: 'Fira Code, monospace',
+              textTransform: 'lowercase'
+            }}>
+              {isLogin ? 'sign in to continue your journey' : 'create your account to get started'}
             </p>
           </div>
 
           {/* Tab Switcher */}
-          <div className="flex gap-2 mb-8 p-1 bg-gray-200 rounded-xl">
+          <div className="flex gap-2 mb-8 p-1 rounded-xl" style={{ 
+            backgroundColor: '#1a1f2e',
+            border: '2px solid #38b6ff',
+            boxShadow: '0 0 20px rgba(56, 182, 255, 0.3)'
+          }}>
             <button
               onClick={() => setIsLogin(true)}
               className={`flex-1 py-3 rounded-lg font-medium transition-all duration-300 ${
                 isLogin
-                  ? 'shadow-md'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? ''
+                  : 'hover:opacity-80'
               }`}
-              style={isLogin ? { color: '#0C1E8B', backgroundColor: 'white', fontFamily: 'Inter, system-ui, sans-serif' } : { fontFamily: 'Inter, system-ui, sans-serif' }}
+              style={isLogin ? { 
+                color: '#38b6ff', 
+                backgroundColor: '#12161e', 
+                fontFamily: 'Fira Code, monospace',
+                textTransform: 'lowercase',
+                fontWeight: '700'
+              } : { 
+                color: '#888888', 
+                fontFamily: 'Fira Code, monospace',
+                textTransform: 'lowercase'
+              }}
             >
-              Sign In
+              sign in
             </button>
             <button
               onClick={() => setIsLogin(false)}
               className={`flex-1 py-3 rounded-lg font-medium transition-all duration-300 ${
                 !isLogin
-                  ? 'shadow-md'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? ''
+                  : 'hover:opacity-80'
               }`}
-              style={!isLogin ? { color: '#0C1E8B', backgroundColor: 'white', fontFamily: 'Inter, system-ui, sans-serif' } : { fontFamily: 'Inter, system-ui, sans-serif' }}
+              style={!isLogin ? { 
+                color: '#38b6ff', 
+                backgroundColor: '#12161e', 
+                fontFamily: 'Fira Code, monospace',
+                textTransform: 'lowercase',
+                fontWeight: '700'
+              } : { 
+                color: '#888888', 
+                fontFamily: 'Fira Code, monospace',
+                textTransform: 'lowercase'
+              }}
             >
-              Sign Up
+              sign up
             </button>
           </div>
 
@@ -262,18 +301,29 @@ const AuthPage = () => {
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name
+                  <label className="block text-sm font-medium mb-2" style={{ 
+                    color: '#12161e', 
+                    fontFamily: 'Fira Code, monospace',
+                    textTransform: 'lowercase'
+                  }}>
+                    full name
                   </label>
                   <div className="relative">
-                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: '#38b6ff' }} />
                     <input
                       type="text"
                       name="fullName"
                       value={formData.fullName}
                       onChange={handleChange}
-                      className="w-full pl-12 pr-4 py-3 bg-white rounded-xl focus:outline-none transition-colors text-gray-900 placeholder-gray-500" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
-                      placeholder="John Doe"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none transition-colors" 
+                      style={{ 
+                        backgroundColor: '#ffffff', 
+                        color: '#12161e', 
+                        fontFamily: 'Fira Code, monospace',
+                        border: '2px solid #38b6ff',
+                        boxShadow: '0 0 10px rgba(56, 182, 255, 0.2)'
+                      }}
+                      placeholder="john doe"
                       required={!isLogin}
                     />
                   </div>
@@ -282,17 +332,28 @@ const AuthPage = () => {
             </AnimatePresence>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+              <label className="block text-sm font-medium mb-2" style={{ 
+                color: '#12161e', 
+                fontFamily: 'Fira Code, monospace',
+                textTransform: 'lowercase'
+              }}>
+                email address
               </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: '#38b6ff' }} />
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-3 bg-white rounded-xl focus:outline-none transition-colors text-gray-900 placeholder-gray-500" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+                  className="w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none transition-colors" 
+                  style={{ 
+                    backgroundColor: '#ffffff', 
+                    color: '#12161e', 
+                    fontFamily: 'Fira Code, monospace',
+                    border: '2px solid #38b6ff',
+                    boxShadow: '0 0 10px rgba(56, 182, 255, 0.2)'
+                  }}
                   placeholder="you@example.com"
                   required
                 />
@@ -300,24 +361,36 @@ const AuthPage = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
+              <label className="block text-sm font-medium mb-2" style={{ 
+                color: '#12161e', 
+                fontFamily: 'Fira Code, monospace',
+                textTransform: 'lowercase'
+              }}>
+                password
               </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5" style={{ color: '#38b6ff' }} />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full pl-12 pr-12 py-3 bg-white rounded-xl focus:outline-none transition-colors text-gray-900 placeholder-gray-500" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+                  className="w-full pl-12 pr-12 py-3 rounded-xl focus:outline-none transition-colors" 
+                  style={{ 
+                    backgroundColor: '#ffffff', 
+                    color: '#12161e', 
+                    fontFamily: 'Fira Code, monospace',
+                    border: '2px solid #38b6ff',
+                    boxShadow: '0 0 10px rgba(56, 182, 255, 0.2)'
+                  }}
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 hover:opacity-80"
+                  style={{ color: '#38b6ff' }}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -327,11 +400,19 @@ const AuthPage = () => {
             {isLogin && (
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center">
-                  <input type="checkbox" className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 bg-white" />
-                  <span className="ml-2 text-gray-700">Remember me</span>
+                  <input type="checkbox" className="w-4 h-4 rounded border-2 focus:ring-2 bg-white" style={{ borderColor: '#38b6ff', accentColor: '#38b6ff' }} />
+                  <span className="ml-2" style={{ 
+                    color: '#12161e', 
+                    fontFamily: 'Fira Code, monospace',
+                    textTransform: 'lowercase'
+                  }}>remember me</span>
                 </label>
-                <a href="#" className="font-medium" style={{ color: '#DA261C' }}>
-                  Forgot password?
+                <a href="#" className="font-medium hover:opacity-80" style={{ 
+                  color: '#38b6ff',
+                  fontFamily: 'Fira Code, monospace',
+                  textTransform: 'lowercase'
+                }}>
+                  forgot password?
                 </a>
               </div>
             )}
@@ -343,11 +424,15 @@ const AuthPage = () => {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className={`p-4 rounded-xl ${
-                    message.type === 'success'
-                      ? 'bg-green-50 text-green-700 border border-green-200'
-                      : 'bg-blue-50 text-blue-700 border border-blue-200'
-                  }`}
+                  className="p-4 rounded-xl"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: '#12161e',
+                    border: '2px solid #38b6ff',
+                    boxShadow: '0 0 10px rgba(56, 182, 255, 0.2)',
+                    fontFamily: 'Fira Code, monospace',
+                    textTransform: 'lowercase'
+                  }}
                 >
                   {message.text}
                 </motion.div>
@@ -359,14 +444,22 @@ const AuthPage = () => {
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={loading}
-              className="w-full text-white py-3 rounded-xl font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#0C1E8B', fontFamily: 'Inter, system-ui, sans-serif' }}
+              className="w-full py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ 
+                backgroundColor: '#38b6ff', 
+                color: '#ffffff',
+                fontFamily: 'Fira Code, monospace',
+                textTransform: 'lowercase',
+                fontWeight: '700',
+                border: '2px solid #38b6ff',
+                boxShadow: '0 0 20px rgba(56, 182, 255, 0.3)'
+              }}
             >
               {loading ? (
                 <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
-                  {isLogin ? 'Sign In' : 'Create Account'}
+                  {isLogin ? 'sign in' : 'create account'}
                   <ArrowRight className="w-5 h-5" />
                 </>
               )}
@@ -375,9 +468,13 @@ const AuthPage = () => {
 
           {/* Divider */}
           <div className="my-8 flex items-center">
-            <div className="flex-1 border-t border-gray-300"></div>
-            <span className="px-4 text-sm text-gray-500">or continue with</span>
-            <div className="flex-1 border-t border-gray-300"></div>
+            <div className="flex-1 border-t" style={{ borderColor: '#38b6ff' }}></div>
+            <span className="px-4 text-sm" style={{ 
+              color: '#12161e', 
+              fontFamily: 'Fira Code, monospace',
+              textTransform: 'lowercase'
+            }}>or continue with</span>
+            <div className="flex-1 border-t" style={{ borderColor: '#38b6ff' }}></div>
           </div>
 
           {/* Social Login */}
@@ -387,9 +484,17 @@ const AuthPage = () => {
                 key={provider}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="py-3 px-4 rounded-xl transition-colors font-medium text-gray-700 bg-white" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+                className="py-3 px-4 rounded-xl transition-colors font-medium"
+                style={{ 
+                  backgroundColor: '#ffffff', 
+                  color: '#12161e', 
+                  fontFamily: 'Fira Code, monospace',
+                  textTransform: 'lowercase',
+                  border: '2px solid #38b6ff',
+                  boxShadow: '0 0 10px rgba(56, 182, 255, 0.2)'
+                }}
               >
-                {provider}
+                {provider.toLowerCase()}
               </motion.button>
             ))}
           </div>

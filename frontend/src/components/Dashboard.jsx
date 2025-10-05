@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   User,
@@ -12,157 +11,87 @@ import {
   ChevronRight,
   LogOut,
   Bell,
-  Settings,
-  Wifi,
-  WifiOff
+  Settings
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 
 const Dashboard = () => {
-  const navigate = useNavigate()
-  const [drivers, setDrivers] = useState([])
-  const [supervisor, setSupervisor] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState(null)
+  // Mock supervisor data
+  const supervisor = {
+    name: 'Sarah Johnson',
+    email: 'sarah.johnson@company.com',
+    role: 'Fleet Supervisor',
+    avatar: 'SJ'
+  }
 
-  // Check auth and fetch supervisor info on mount
-  useEffect(() => {
-    checkAuth()
-  }, [])
-
-  // Fetch drivers from Supabase with polling every 2 seconds
-  useEffect(() => {
-    if (user) {
-      fetchDrivers()
-
-      // Poll every 2 seconds
-      const interval = setInterval(() => {
-        fetchDrivers()
-      }, 2000)
-
-      return () => {
-        clearInterval(interval)
-      }
+  // Mock drivers data with Arduino associations
+  const drivers = [
+    {
+      id: 1,
+      name: 'Michael Chen',
+      email: 'mchen@company.com',
+      arduinoId: 'ARD-001',
+      status: 'active',
+      lastActive: '2 mins ago',
+      tripsToday: 5,
+      safetyScore: 95,
+      avatar: 'MC'
+    },
+    {
+      id: 2,
+      name: 'Emily Rodriguez',
+      email: 'erodriguez@company.com',
+      arduinoId: 'ARD-002',
+      status: 'active',
+      lastActive: '5 mins ago',
+      tripsToday: 3,
+      safetyScore: 88,
+      avatar: 'ER'
+    },
+    {
+      id: 3,
+      name: 'James Wilson',
+      email: 'jwilson@company.com',
+      arduinoId: 'ARD-003',
+      status: 'inactive',
+      lastActive: '1 hour ago',
+      tripsToday: 7,
+      safetyScore: 92,
+      avatar: 'JW'
+    },
+    {
+      id: 4,
+      name: 'Aisha Patel',
+      email: 'apatel@company.com',
+      arduinoId: 'ARD-004',
+      status: 'warning',
+      lastActive: 'Just now',
+      tripsToday: 4,
+      safetyScore: 76,
+      avatar: 'AP'
+    },
+    {
+      id: 5,
+      name: 'David Kim',
+      email: 'dkim@company.com',
+      arduinoId: 'ARD-005',
+      status: 'active',
+      lastActive: '10 mins ago',
+      tripsToday: 6,
+      safetyScore: 98,
+      avatar: 'DK'
+    },
+    {
+      id: 6,
+      name: 'Sofia Martinez',
+      email: 'smartinez@company.com',
+      arduinoId: 'ARD-006',
+      status: 'active',
+      lastActive: '3 mins ago',
+      tripsToday: 2,
+      safetyScore: 91,
+      avatar: 'SM'
     }
-  }, [user])
-
-  const checkAuth = async () => {
-    try {
-      // Get current user
-      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser()
-
-      if (authError || !currentUser) {
-        navigate('/')
-        return
-      }
-
-      setUser(currentUser)
-
-      // Fetch supervisor info
-      const { data: supervisorData, error: supervisorError } = await supabase
-        .from('supervisors')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .single()
-
-      if (supervisorError) {
-        console.error('Error fetching supervisor:', supervisorError)
-        // Create supervisor if doesn't exist
-        const name = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0]
-        const { data: newSupervisor } = await supabase
-          .from('supervisors')
-          .insert({
-            user_id: currentUser.id,
-            name: name,
-            email: currentUser.email,
-            role: 'Fleet Supervisor'
-          })
-          .select()
-          .single()
-
-        setSupervisor(newSupervisor || {
-          name: name,
-          email: currentUser.email,
-          role: 'Fleet Supervisor',
-          avatar: name.split(' ').map(n => n[0]).join('').toUpperCase()
-        })
-      } else {
-        setSupervisor({
-          ...supervisorData,
-          avatar: supervisorData.name.split(' ').map(n => n[0]).join('').toUpperCase()
-        })
-      }
-    } catch (error) {
-      console.error('Error in checkAuth:', error)
-      navigate('/')
-    }
-  }
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    navigate('/')
-  }
-
-  const fetchDrivers = async () => {
-    try {
-      // Fetch all drivers (no join required)
-      const { data: driversData, error: driversError } = await supabase
-        .from('drivers')
-        .select('*')
-        .order('last_active', { ascending: false })
-
-      if (driversError) throw driversError
-
-      // Fetch all sessions for today
-      const today = new Date().toISOString().split('T')[0]
-      const { data: sessionsData } = await supabase
-        .from('driving_sessions')
-        .select('*')
-        .gte('started_at', `${today}T00:00:00`)
-
-      // Process drivers data
-      const processedDrivers = driversData.map(driver => {
-        const driverSessions = sessionsData?.filter(s => s.driver_id === driver.id) || []
-        const activeSession = driverSessions.find(s => s.status === 'active')
-
-        return {
-          id: driver.id,
-          name: driver.name,
-          email: driver.email,
-          arduinoId: driver.arduino_id,
-          status: driver.status,
-          connectionStatus: driver.connection_status || 'offline',
-          lastActive: formatLastActive(driver.last_active),
-          tripsToday: driverSessions.length,
-          safetyScore: driver.safety_score || 100,
-          avatar: getInitials(driver.name),
-          hasActiveSession: !!activeSession
-        }
-      })
-
-      setDrivers(processedDrivers)
-    } catch (error) {
-      console.error('Error fetching drivers:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getInitials = (name) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase()
-  }
-
-  const formatLastActive = (timestamp) => {
-    if (!timestamp) return 'Never'
-    const date = new Date(timestamp)
-    const now = new Date()
-    const diff = Math.floor((now - date) / 1000) // seconds
-
-    if (diff < 60) return 'Just now'
-    if (diff < 3600) return `${Math.floor(diff / 60)} mins ago`
-    if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`
-    return `${Math.floor(diff / 86400)} days ago`
-  }
+  ]
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -188,58 +117,56 @@ const Dashboard = () => {
     return 'text-red-600'
   }
 
-  if (loading || !supervisor) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen" style={{ backgroundColor: '#12161e' }}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 backdrop-blur-lg bg-white/80">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      <header className="sticky top-0 z-50 backdrop-blur-lg" style={{ backgroundColor: '#12161e' }}>
+        <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#38b6ff' }}>
                 <Car className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Fleet Dashboard
+                <h1 className="text-2xl font-bold" style={{ 
+                  color: '#ffffff', 
+                  fontFamily: 'Orbitron, monospace',
+                  textShadow: '0 0 2px #ffffff, 0 0 4px #38b6ff, 0 0 8px #38b6ff',
+                  letterSpacing: '2px',
+                  textTransform: 'uppercase',
+                  fontWeight: '900'
+                }}>
+                  FLEET DASHBOARD
                 </h1>
-                <p className="text-sm text-gray-500">Monitor your drivers in real-time</p>
+                <p className="text-sm" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Monitor your drivers in real-time</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative"
+                className="p-2 rounded-lg transition-colors relative"
+                style={{ backgroundColor: '#1a1f2e' }}
               >
-                <Bell className="w-5 h-5 text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                <Bell className="w-5 h-5 text-white" />
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ backgroundColor: '#38b6ff' }}></span>
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 rounded-lg transition-colors"
+                style={{ backgroundColor: '#1a1f2e' }}
               >
-                <Settings className="w-5 h-5 text-gray-600" />
+                <Settings className="w-5 h-5 text-white" />
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={handleLogout}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 rounded-lg transition-colors"
+                style={{ backgroundColor: '#1a1f2e' }}
               >
-                <LogOut className="w-5 h-5 text-gray-600" />
+                <LogOut className="w-5 h-5 text-white" />
               </motion.button>
             </div>
           </div>
@@ -247,21 +174,29 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-6 py-6" style={{ overflow: 'visible' }}>
         {/* Supervisor Info Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white rounded-2xl shadow-lg p-8 mb-8 border border-gray-100"
+        <div
+          className="rounded-xl p-6 mb-8"
+          style={{ 
+            backgroundColor: '#1a1f2e',
+            border: '2px solid #38b6ff',
+            boxShadow: '0 0 20px rgba(56, 182, 255, 0.3)'
+          }}
         >
           <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+            <div className="w-16 h-16 rounded-lg flex items-center justify-center text-white text-xl font-bold" style={{ backgroundColor: '#38b6ff' }}>
               {supervisor.avatar}
             </div>
             <div className="flex-1">
-              <h2 className="text-3xl font-bold text-gray-900 mb-1">{supervisor.name}</h2>
-              <div className="flex items-center gap-4 text-gray-600">
+              <h2 className="text-2xl font-bold mb-1" style={{ 
+                color: '#ffffff',
+                fontFamily: 'Fira Code, monospace',
+                letterSpacing: '1px',
+                textTransform: 'lowercase',
+                fontWeight: '700'
+              }}>{supervisor.name}</h2>
+              <div className="flex items-center gap-4" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4" />
                   <span>{supervisor.email}</span>
@@ -273,121 +208,144 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="flex gap-4">
-              <div className="text-center px-6 py-3 bg-blue-50 rounded-xl">
-                <div className="text-2xl font-bold text-blue-600">{drivers.length}</div>
-                <div className="text-sm text-gray-600">Total Drivers</div>
+              <div className="text-center px-4 py-2 rounded-lg" style={{ 
+                backgroundColor: '#12161e',
+                border: '1px solid #38b6ff',
+                boxShadow: '0 0 10px rgba(56, 182, 255, 0.2)'
+              }}>
+                <div className="text-xl font-bold" style={{ color: '#38b6ff' }}>{drivers.length}</div>
+                <div className="text-xs" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Total Drivers</div>
               </div>
-              <div className="text-center px-6 py-3 bg-green-50 rounded-xl">
-                <div className="text-2xl font-bold text-green-600">
-                  {drivers.filter(d => d.connectionStatus === 'online').length}
+              <div className="text-center px-4 py-2 rounded-lg" style={{ 
+                backgroundColor: '#12161e',
+                border: '1px solid #38b6ff',
+                boxShadow: '0 0 10px rgba(56, 182, 255, 0.2)'
+              }}>
+                <div className="text-xl font-bold" style={{ color: '#38b6ff' }}>
+                  {drivers.filter(d => d.status === 'active').length}
                 </div>
-                <div className="text-sm text-gray-600">Live Drivers</div>
+                <div className="text-xs" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Active Now</div>
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Drivers Section */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-2xl font-bold text-gray-900">Your Drivers</h3>
-            <span className="text-sm text-gray-500">Scroll to see more →</span>
+            <h3 className="text-xl font-bold" style={{ 
+              color: '#ffffff',
+              fontFamily: 'Orbitron, monospace',
+              textShadow: '0 0 1px #ffffff, 0 0 3px #38b6ff, 0 0 6px #38b6ff',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              fontWeight: '700'
+            }}>YOUR DRIVERS</h3>
+            <span className="text-sm" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Scroll to see more →</span>
           </div>
         </div>
 
         {/* Horizontally Scrollable Driver Cards */}
-        <div className="relative">
-          <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
+        <div className="relative" style={{ zIndex: 10, overflow: 'visible' }}>
+          <div className="flex gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory" style={{ scrollbarWidth: 'none', overflowY: 'visible', paddingBottom: '2rem' }}>
             {drivers.map((driver, index) => (
               <motion.div
                 key={driver.id}
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.5 }}
-                whileHover={{ scale: 1.02, y: -5 }}
-                className="flex-shrink-0 w-80 snap-start"
+                whileHover={{ 
+                  scale: 1.05, 
+                  y: -10, 
+                  rotateY: 5,
+                  boxShadow: '0 0 40px rgba(56, 182, 255, 0.6)',
+                  transition: { duration: 0.2 }
+                }}
+                className="flex-shrink-0 w-80 snap-start relative"
+                style={{ zIndex: 1 }}
               >
-                <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 h-full">
+                <div className="rounded-xl p-4 transition-all duration-300 h-full" style={{ 
+                  backgroundColor: '#1a1f2e',
+                  border: '2px solid #38b6ff',
+                  boxShadow: '0 0 20px rgba(56, 182, 255, 0.3)'
+                }}>
                   {/* Driver Header */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-purple-500 rounded-xl flex items-center justify-center text-white text-lg font-bold">
+                      <div className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: '#38b6ff' }}>
                         {driver.avatar}
                       </div>
                       <div>
-                        <h4 className="font-semibold text-gray-900 text-lg">{driver.name}</h4>
-                        <p className="text-sm text-gray-500 flex items-center gap-1">
+                        <h4 className="font-semibold" style={{ 
+                          color: '#ffffff',
+                          fontFamily: 'Fira Code, monospace',
+                          letterSpacing: '0.5px',
+                          textTransform: 'lowercase',
+                          fontWeight: '700'
+                        }}>{driver.name}</h4>
+                        <p className="text-xs flex items-center gap-1" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>
                           <Mail className="w-3 h-3" />
                           {driver.email}
                         </p>
                       </div>
                     </div>
-                    <div className={`p-2 rounded-lg ${getStatusColor(driver.status)} bg-opacity-10`}>
-                      <div className={`${getStatusColor(driver.status)} text-white`}>
+                    <div className="p-1 rounded" style={{ backgroundColor: '#38b6ff' }}>
+                      <div className="text-white">
                         {getStatusIcon(driver.status)}
                       </div>
                     </div>
                   </div>
 
-                  {/* Arduino ID with Connection Status */}
-                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-600">Arduino ID</span>
-                      <span className="font-mono font-semibold text-gray-900">{driver.arduinoId}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {driver.connectionStatus === 'online' ? (
-                        <>
-                          <div className="flex items-center gap-1 text-green-600">
-                            <CheckCircle className="w-4 h-4" />
-                            <Wifi className="w-3 h-3" />
-                          </div>
-                          <span className="text-xs font-medium text-green-600">Live Connected</span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-1 text-gray-400">
-                            <WifiOff className="w-3 h-3" />
-                          </div>
-                          <span className="text-xs text-gray-500">Offline</span>
-                        </>
-                      )}
+                  {/* Arduino ID */}
+                  <div className="rounded-lg p-2 mb-3" style={{ 
+                    backgroundColor: '#12161e',
+                    border: '1px solid #38b6ff',
+                    boxShadow: '0 0 10px rgba(56, 182, 255, 0.2)'
+                  }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Arduino ID</span>
+                      <span className="font-mono text-sm font-semibold" style={{ color: '#38b6ff' }}>{driver.arduinoId}</span>
                     </div>
                   </div>
 
                   {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="bg-blue-50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Car className="w-4 h-4 text-blue-600" />
-                        <span className="text-xs text-gray-600">Trips Today</span>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="rounded-lg p-2" style={{ 
+                      backgroundColor: '#12161e',
+                      border: '1px solid #38b6ff',
+                      boxShadow: '0 0 10px rgba(56, 182, 255, 0.2)'
+                    }}>
+                      <div className="flex items-center gap-1 mb-1">
+                        <Car className="w-3 h-3" style={{ color: '#38b6ff' }} />
+                        <span className="text-xs" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Trips</span>
                       </div>
-                      <div className="text-xl font-bold text-blue-600">{driver.tripsToday}</div>
+                      <div className="text-lg font-bold" style={{ color: '#38b6ff' }}>{driver.tripsToday}</div>
                     </div>
-                    <div className="bg-purple-50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Activity className="w-4 h-4 text-purple-600" />
-                        <span className="text-xs text-gray-600">Safety Score</span>
+                    <div className="rounded-lg p-2" style={{ 
+                      backgroundColor: '#12161e',
+                      border: '1px solid #38b6ff',
+                      boxShadow: '0 0 10px rgba(56, 182, 255, 0.2)'
+                    }}>
+                      <div className="flex items-center gap-1 mb-1">
+                        <Activity className="w-3 h-3" style={{ color: '#38b6ff' }} />
+                        <span className="text-xs" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Safety</span>
                       </div>
-                      <div className={`text-xl font-bold ${getSafetyScoreColor(driver.safetyScore)}`}>
+                      <div className="text-lg font-bold" style={{ color: '#38b6ff' }}>
                         {driver.safetyScore}%
                       </div>
                     </div>
                   </div>
 
                   {/* Last Active */}
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Clock className="w-4 h-4" />
-                      <span>Last active: {driver.lastActive}</span>
+                  <div className="flex items-center justify-between pt-2" style={{ borderTop: '1px solid #38b6ff' }}>
+                    <div className="flex items-center gap-1 text-xs" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>
+                      <Clock className="w-3 h-3" />
+                      <span>{driver.lastActive}</span>
                     </div>
                     <motion.button
-                      whileHover={{ x: 5 }}
-                      onClick={() => navigate(`/driver/${driver.id}`)}
-                      className="text-blue-600 hover:text-blue-700 font-medium text-sm flex items-center gap-1"
+                      whileHover={{ x: 2 }}
+                      className="text-xs flex items-center gap-1"
+                      style={{ color: '#38b6ff' }}
                     >
-                      View Details
-                      <ChevronRight className="w-4 h-4" />
+                      View
+                      <ChevronRight className="w-3 h-3" />
                     </motion.button>
                   </div>
                 </div>
@@ -396,61 +354,77 @@ const Dashboard = () => {
           </div>
 
           {/* Scroll Indicator - Left Gradient */}
-          <div className="absolute left-0 top-0 bottom-4 w-20 bg-gradient-to-r from-gray-50 to-transparent pointer-events-none"></div>
+          <div className="absolute left-0 top-0 bottom-4 w-20 pointer-events-none" style={{ background: 'linear-gradient(to right, #12161e, transparent)' }}></div>
 
           {/* Scroll Indicator - Right Gradient */}
-          <div className="absolute right-0 top-0 bottom-4 w-20 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none"></div>
+          <div className="absolute right-0 top-0 bottom-4 w-20 pointer-events-none" style={{ background: 'linear-gradient(to left, #12161e, transparent)' }}></div>
         </div>
 
         {/* Quick Stats Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-          className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6"
-        >
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div 
+            className="rounded-xl p-4" 
+            style={{ 
+              backgroundColor: '#12161e',
+              border: '2px solid #38b6ff',
+              boxShadow: '0 0 20px rgba(56, 182, 255, 0.3)'
+            }}
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Total Trips Today</p>
-                <p className="text-3xl font-bold text-gray-900">
+                <p className="text-xs mb-1" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Total Trips Today</p>
+                <p className="text-2xl font-bold" style={{ color: '#38b6ff' }}>
                   {drivers.reduce((acc, d) => acc + d.tripsToday, 0)}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <Car className="w-6 h-6 text-blue-600" />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#38b6ff' }}>
+                <Car className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+          <div 
+            className="rounded-xl p-4" 
+            style={{ 
+              backgroundColor: '#12161e',
+              border: '2px solid #38b6ff',
+              boxShadow: '0 0 20px rgba(56, 182, 255, 0.3)'
+            }}
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Average Safety Score</p>
-                <p className="text-3xl font-bold text-gray-900">
+                <p className="text-xs mb-1" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Average Safety Score</p>
+                <p className="text-2xl font-bold" style={{ color: '#38b6ff' }}>
                   {Math.round(drivers.reduce((acc, d) => acc + d.safetyScore, 0) / drivers.length)}%
                 </p>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <Activity className="w-6 h-6 text-green-600" />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#38b6ff' }}>
+                <Activity className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+          <div 
+            className="rounded-xl p-4" 
+            style={{ 
+              backgroundColor: '#12161e',
+              border: '2px solid #38b6ff',
+              boxShadow: '0 0 20px rgba(56, 182, 255, 0.3)'
+            }}
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Active Alerts</p>
-                <p className="text-3xl font-bold text-gray-900">
+                <p className="text-xs mb-1" style={{ color: '#ffffff', fontFamily: 'Fira Code, monospace' }}>Active Alerts</p>
+                <p className="text-2xl font-bold" style={{ color: '#38b6ff' }}>
                   {drivers.filter(d => d.status === 'warning').length}
                 </p>
               </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-yellow-600" />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#38b6ff' }}>
+                <AlertCircle className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       </main>
     </div>
   )
